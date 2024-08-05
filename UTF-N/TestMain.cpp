@@ -1,16 +1,86 @@
-﻿#pragma once
+﻿
+// Lower warning-level and turn off certain warnings for STL compilation
+#if (defined(_MSC_VER))
+	#pragma warning (push, 2) // Push warnings and set warn-level to 3
+	#pragma warning(disable : 4365) // signed/unsigned mismatch
+#elif (defined(__CLANG__) || defined(__GNUC__))
+	#pragma GCC diagnostic push
+	#pragma GCC diagnostic ignored "-Wsign-compare"
+#endif
+
 #include <string>
 #include <iostream>
-#include <bitset>
 #include <cstdint>
+#include <type_traits>
+
+// Restore warnings-levels after STL includes
+#if (defined(_MSC_VER))
+	#pragma warning (pop)
+#elif (defined(__CLANG__) || defined(__GNUC__))
+	#pragma GCC diagnostic pop
+#endif // Warnings
+
+
+
+#if (defined(_MSC_VER))
+	#pragma warning (push)
+#pragma warning (disable: 4514) // C4514 "unreferenced inline function has been removed"
+#pragma warning (disable: 4820) // C4820 "'n' bytes padding added after data member '...'"
+	#elif (defined(__CLANG__) || defined(__GNUC__))
+#endif // Warnings
+
+#ifdef __cpp_constexpr
+	#define UTF_CONSTEXPR constexpr
+#else
+	#define UTF_CONSTEXPR
+#endif // __cpp_constexpr
+
+
+#if (defined(__cpp_constexpr) && __cpp_constexpr >= 201304L)
+	#define UTF_CONSTEXPR14 constexpr
+#else 
+	#define UTF_CONSTEXPR14
+#endif
+
+#if (defined(__cpp_constexpr) && __cpp_constexpr >= 201603L)
+	#define UTF_CONSTEXPR17 constexpr
+#else 
+	#define UTF_CONSTEXPR17
+#endif
+
+#if (defined(__cpp_constexpr) && __cpp_constexpr >= 201907L)
+	#define UTF_CONSTEXPR20 constexpr
+#else 
+	#define UTF_CONSTEXPR20
+#endif
+
+#if (defined(__cpp_constexpr) && __cpp_constexpr >= 202211L)
+	#define UTF_CONSTEXPR23 constexpr
+#else 
+	#define UTF_CONSTEXPR23
+#endif
+
+#if (defined(__cpp_constexpr) && __cpp_constexpr >= 202406L)
+	#define UTF_CONSTEXPR26 constexpr
+#else 
+	#define UTF_CONSTEXPR26
+#endif
+
+
+#ifdef __cpp_nodiscard
+	#define UTF_NODISCARD [[nodiscard]]
+#else
+	#define UTF_NODISCARD
+#endif
+
 
 namespace UtfN
 {
-#if (__cplusplus >= 201811L)
+#if defined(__cpp_char8_t)
 	typedef char8_t utf_char8_t;
 	typedef char16_t utf_char16_t;
 	typedef char32_t utf_char32_t;
-#elif(__cplusplus >= 200704L)
+#elif defined(__cpp_unicode_characters)
 	typedef unsigned char utf_char8_t;
 	typedef char16_t utf_char16_t;
 	typedef char32_t utf_char32_t;
@@ -19,19 +89,28 @@ namespace UtfN
 	typedef uint16_t utf_char16_t;
 	typedef uint32_t utf_char32_t;
 #endif
-
+		
 	namespace UtfImpl
 	{
 		namespace Utils
 		{
 			template<typename ValueType, typename FlagType>
-			constexpr bool IsFlagSet(ValueType Value, FlagType Flag)
+			UTF_CONSTEXPR UTF_NODISCARD
+				bool IsFlagSet(ValueType Value, FlagType Flag) noexcept
 			{
 				return (Value & Flag) == Flag;
 			}
 
+			template<typename ValueType, typename FlagType>
+			UTF_CONSTEXPR UTF_NODISCARD
+				ValueType GetWithClearedFlag(ValueType Value, FlagType Flag) noexcept
+			{
+				return static_cast<ValueType>(Value & static_cast<FlagType>(~Flag));
+			}
+
 			template<uint8_t BitIndex, typename ValueType>
-			constexpr bool IsBitSet(ValueType Value)
+			UTF_CONSTEXPR UTF_NODISCARD
+				bool IsBitSet(ValueType Value) noexcept
 			{
 				constexpr auto NumBitsInValueType = sizeof(ValueType) * 0x8;
 				static_assert(BitIndex < NumBitsInValueType, "Can not test out of range bit!");
@@ -40,9 +119,13 @@ namespace UtfN
 			}
 		}
 
+		UTF_CONSTEXPR bool IsWCharUtf32 = sizeof(wchar_t) == 0x4;
+
 		namespace Utf8
 		{
 			/*
+			* Available bits, and max values, for n-byte utf8 characters
+			* 
 			* 01111111 -> 1 byte  -> 7 bits
 			* 11011111 -> 2 bytes -> 5 + 6 bits -> 11 bits
 			* 11101111 -> 3 bytes -> 4 + 6 + 6 bits -> 16 bits
@@ -50,27 +133,29 @@ namespace UtfN
 			*
 			* 10111111 -> follow up byte
 			*/
-			constexpr utf_char32_t Max1ByteValue = (1 <<  7) - 1; // 7  bits available
-			constexpr utf_char32_t Max2ByteValue = (1 << 11) - 1; // 11 bits available
-			constexpr utf_char32_t Max3ByteValue = (1 << 16) - 1; // 16 bits available
-			constexpr utf_char32_t Max4ByteValue = 0x10FFFF;      // 21 bits available, but not fully used
+			UTF_CONSTEXPR utf_char32_t Max1ByteValue = (1 <<  7) - 1; // 7  bits available
+			UTF_CONSTEXPR utf_char32_t Max2ByteValue = (1 << 11) - 1; // 11 bits available
+			UTF_CONSTEXPR utf_char32_t Max3ByteValue = (1 << 16) - 1; // 16 bits available
+			UTF_CONSTEXPR utf_char32_t Max4ByteValue = 0x10FFFF;      // 21 bits available, but not fully used
 
-			constexpr utf_char8_t FollowupByteMask = 0b1000'0000;
-			constexpr utf_char8_t FollowupByteDataMask = 0b0011'1111;
-			constexpr utf_char8_t NumDataBitsInFollowupByte = 0x6;
+			// Flags for follow-up bytes of multibyte utf8 character
+			UTF_CONSTEXPR utf_char8_t FollowupByteMask = 0b1000'0000;
+			UTF_CONSTEXPR utf_char8_t FollowupByteDataMask = 0b0011'1111;
+			UTF_CONSTEXPR utf_char8_t NumDataBitsInFollowupByte = 0x6;
 
-			constexpr utf_char8_t OneByteFlag = 0b0000'0000;
-			constexpr utf_char8_t TwoByteFlag = 0b1100'0000;
-			constexpr utf_char8_t ThreeByteFlag = 0b1110'0000;
-			constexpr utf_char8_t FourByteFlag = 0b1111'0000;
+			// Flags for start-bytes of multibyte utf8 characters
+			UTF_CONSTEXPR utf_char8_t TwoByteFlag = 0b1100'0000;
+			UTF_CONSTEXPR utf_char8_t ThreeByteFlag = 0b1110'0000;
+			UTF_CONSTEXPR utf_char8_t FourByteFlag = 0b1111'0000;
 		}
 
 		namespace Utf16
 		{
-			constexpr utf_char16_t HighSurrogateBitmask = 0xD800;
-			constexpr utf_char16_t LowerSurrogateBitmask = 0xDC00;
+			// Surrogate masks and offset for multibyte utf16 characters
+			UTF_CONSTEXPR utf_char16_t HighSurrogateBitmask = 0xD800;
+			UTF_CONSTEXPR utf_char16_t LowerSurrogateBitmask = 0xDC00;
 
-			constexpr utf_char32_t SurrogatePairOffset = 0x10000;
+			UTF_CONSTEXPR utf_char32_t SurrogatePairOffset = 0x10000;
 		}
 
 		namespace Utf32
@@ -79,7 +164,19 @@ namespace UtfN
 		}
 	}
 
-	int GetUtf8CharLenght(const utf_char8_t C)
+	struct utf8_bytes
+	{
+		utf_char8_t Chars[4] = { 0 };
+	};
+
+	struct utf16_pair
+	{
+		utf_char16_t Upper = 0;
+		utf_char16_t Lower = 0;
+	};
+
+	UTF_CONSTEXPR UTF_NODISCARD
+		int GetUtf8CharLenght(const utf_char8_t C)
 	{
 		using namespace UtfImpl;
 
@@ -107,22 +204,21 @@ namespace UtfN
 		}
 	}
 
-	struct utf_8_bytes
+	UTF_CONSTEXPR UTF_NODISCARD
+		int GetUtf16CharLenght(const utf_char16_t C)
 	{
-		utf_char8_t Chars[4] = { 0 };
-	};
+		if (UtfImpl::Utils::IsFlagSet(C, UtfImpl::Utf16::HighSurrogateBitmask))
+			return 0x2;
 
-	struct utf_16_pair
-	{
-		utf_char16_t Upper = 0;
-		utf_char16_t Lower = 0;
-	};
+		return 0x1;
+	}
 
-	utf_16_pair Utf32ToUtf16Pair(const utf_char32_t Codepoint)
+	UTF_CONSTEXPR UTF_NODISCARD
+		utf16_pair Utf32ToUtf16Pair(const utf_char32_t Codepoint) noexcept
 	{
 		using namespace UtfImpl;
 
-		utf_16_pair RetCharPair;
+		utf16_pair RetCharPair;
 
 		if (Codepoint > std::numeric_limits<utf_char16_t>::max())
 		{
@@ -142,14 +238,15 @@ namespace UtfN
 		return RetCharPair;
 	}
 
-	utf_char32_t Utf16PairToUtf32(const utf_16_pair Character)
+	UTF_CONSTEXPR UTF_NODISCARD
+		utf_char32_t Utf16PairToUtf32(const utf16_pair Character) noexcept
 	{
 		using namespace UtfImpl;
 
 		if (Character.Upper)
 		{
-			const utf_char16_t UpperCodepointWithoutSurrogate = Character.Upper & ~Utf16::HighSurrogateBitmask;
-			const utf_char16_t LowerCodepointWithoutSurrogate = Character.Lower & ~Utf16::LowerSurrogateBitmask;
+			const utf_char16_t UpperCodepointWithoutSurrogate = Utils::GetWithClearedFlag(Character.Upper, Utf16::HighSurrogateBitmask);
+			const utf_char16_t LowerCodepointWithoutSurrogate = Utils::GetWithClearedFlag(Character.Lower, Utf16::LowerSurrogateBitmask);
 
 			return ((static_cast<utf_char32_t>(UpperCodepointWithoutSurrogate) << 10) | LowerCodepointWithoutSurrogate) + Utf16::SurrogatePairOffset;
 		}
@@ -157,12 +254,13 @@ namespace UtfN
 		return Character.Lower;
 	}
 
-	utf_8_bytes Utf32ToUtf8Bytes(const utf_char32_t Codepoint)
+	UTF_CONSTEXPR UTF_NODISCARD
+		utf8_bytes Utf32ToUtf8Bytes(const utf_char32_t Codepoint) noexcept
 	{
 		using namespace UtfImpl;
 		using namespace UtfImpl::Utf8;
 
-		utf_8_bytes RetBytes;
+		utf8_bytes RetBytes;
 
 		if (Codepoint <= Max1ByteValue)
 		{
@@ -213,7 +311,8 @@ namespace UtfN
 		return RetBytes;
 	}
 
-	utf_char32_t Utf8BytesToUtf32(const utf_8_bytes Character)
+	UTF_CONSTEXPR UTF_NODISCARD 
+		utf_char32_t Utf8BytesToUtf32(const utf8_bytes Character) noexcept
 	{
 		using namespace UtfImpl;
 		using namespace UtfImpl::Utf8;
@@ -225,25 +324,25 @@ namespace UtfN
 		}
 		else if (Utils::IsFlagSet(Character.Chars[0], FourByteFlag))
 		{
-			utf_char32_t RetChar = Character.Chars[3] & ~FollowupByteMask;
-			RetChar |= (Character.Chars[2] & ~FollowupByteMask) << (NumDataBitsInFollowupByte * 1); // Clear the FollowupByteMask and move the bits to the right position
-			RetChar |= (Character.Chars[1] & ~FollowupByteMask) << (NumDataBitsInFollowupByte * 2); // Clear the FollowupByteMask and move the bits to the right position
-			RetChar |= (Character.Chars[0] & ~FourByteFlag) << (NumDataBitsInFollowupByte * 3); // Clear the FourByteFlag and move the bits to the right position
+			utf_char32_t RetChar = Utils::GetWithClearedFlag(Character.Chars[3], FollowupByteMask);
+			RetChar |= Utils::GetWithClearedFlag(Character.Chars[2], FollowupByteMask) << (NumDataBitsInFollowupByte * 1); // Clear the FollowupByteMask and move the bits to the right position
+			RetChar |= Utils::GetWithClearedFlag(Character.Chars[1], FollowupByteMask) << (NumDataBitsInFollowupByte * 2); // Clear the FollowupByteMask and move the bits to the right position
+			RetChar |= Utils::GetWithClearedFlag(Character.Chars[0], FourByteFlag) << (NumDataBitsInFollowupByte * 3); // Clear the FourByteFlag and move the bits to the right position
 
 			return RetChar;
 		}
 		else if (Utils::IsFlagSet(Character.Chars[0], ThreeByteFlag))
 		{
-			utf_char32_t RetChar = Character.Chars[2] & ~FollowupByteMask;
-			RetChar |= (Character.Chars[1] & ~FollowupByteMask) << (NumDataBitsInFollowupByte * 1); // Clear the FollowupByteMask and move the bits to the right position
-			RetChar |= (Character.Chars[0] & ~ThreeByteFlag) << (NumDataBitsInFollowupByte * 2); // Clear the ThreeByteFlag and move the bits to the right position
+			utf_char32_t RetChar = Utils::GetWithClearedFlag(Character.Chars[2], FollowupByteMask);
+			RetChar |= Utils::GetWithClearedFlag(Character.Chars[1], FollowupByteMask) << (NumDataBitsInFollowupByte * 1); // Clear the FollowupByteMask and move the bits to the right position
+			RetChar |= Utils::GetWithClearedFlag(Character.Chars[0], ThreeByteFlag) << (NumDataBitsInFollowupByte * 2); // Clear the ThreeByteFlag and move the bits to the right position
 
 			return RetChar;
 		}
 		else if (Utils::IsFlagSet(Character.Chars[0], TwoByteFlag))
 		{
-			utf_char32_t RetChar = Character.Chars[1] & ~FollowupByteMask; // Clear the FollowupByteMask and move the bits to the right position
-			RetChar |= (Character.Chars[0] & ~TwoByteFlag) << NumDataBitsInFollowupByte; // Clear the TwoByteFlag and move the bits to the right position
+			utf_char32_t RetChar = Utils::GetWithClearedFlag(Character.Chars[1], FollowupByteMask); // Clear the FollowupByteMask and move the bits to the right position
+			RetChar |= Utils::GetWithClearedFlag(Character.Chars[0], TwoByteFlag) << NumDataBitsInFollowupByte; // Clear the TwoByteFlag and move the bits to the right position
 
 			return RetChar;
 		}
@@ -254,21 +353,158 @@ namespace UtfN
 		}
 	}
 
-	utf_8_bytes Utf16PairToUtf8Bytes(const utf_16_pair Character)
+	UTF_CONSTEXPR UTF_NODISCARD
+		utf8_bytes Utf16PairToUtf8Bytes(const utf16_pair Character) noexcept
 	{
 		const utf_char32_t As32BitChar = Utf16PairToUtf32(Character);
 
 		return Utf32ToUtf8Bytes(As32BitChar);
 	}
 
-	utf_16_pair Utf8BytesToUtf16(const utf_8_bytes Character)
+	UTF_CONSTEXPR UTF_NODISCARD
+		utf16_pair Utf8BytesToUtf16(const utf8_bytes Character) noexcept
 	{
 		const utf_char32_t As32BitChar = Utf8BytesToUtf32(Character);
 
 		return Utf32ToUtf16Pair(As32BitChar);
 	}
+
+	template<typename byte_iterator_type>
+	UTF_CONSTEXPR byte_iterator_type ReplaceUtf8(byte_iterator_type Begin, byte_iterator_type End, utf_char8_t CharToReplace, utf_char8_t ReplacementChar)
+	{
+		using namespace UtfImpl;
+
+		if (Begin == End)
+			return End;
+
+		const auto ToReplaceSize = GetUtf8CharLenght(CharToReplace);
+		const auto ReplacementSize = GetUtf8CharLenght(ReplacementChar);
+
+		if (ToReplaceSize == ReplacementSize) // Trivial replacement
+		{
+
+		}
+		else if (ToReplaceSize < ReplacementSize) // 
+		{
+
+		}
+		else /* if (ToReplaceSize > ReplacementSize) */ // Replace and move following bytes back
+		{
+
+		}
+	}
+
+	template<typename char_type>
+	class Utf8Iterator
+	{
+	};
+
+	template<typename byte_iterator_type>
+	class utf8_iterator
+	{
+	public:
+		UTF_CONSTEXPR utf8_iterator(byte_iterator_type Begin, byte_iterator_type End)
+			: CurrentIterator(Begin), EndIterator(End)
+		{
+			PopulateCurrentChar();
+		}
+
+		template<typename container_type, 
+			typename = decltype(std::begin(std::declval<container_type>())), 
+			typename = decltype(std::end(std::declval<container_type>()))
+		>
+		explicit UTF_CONSTEXPR utf8_iterator(container_type& Container)
+			: CurrentIterator(std::begin(Container)), EndIterator(std::end(Container))
+		{
+			PopulateCurrentChar();
+		}
+
+	public:
+		inline utf8_iterator operator++()
+		{
+			// Advance over the bytes of the old character
+			int OldByteCount = GetUtf8CharLenght(static_cast<utf_char8_t>(*CurrentIterator)); // ToDo: Handle invalid characters
+			while (OldByteCount > 0 && CurrentIterator != EndIterator)
+			{
+				CurrentIterator++;
+				OldByteCount--;
+			}
+
+			PopulateCurrentChar();
+
+			return *this;
+		}
+
+	public:
+		inline utf8_bytes operator*() const
+		{
+			return CurrentChar;
+		}
+
+		inline bool operator==(const utf8_iterator& Other) const
+		{
+			return CurrentIterator == Other.CurrentIterator;
+		}
+		inline bool operator!=(const utf8_iterator& Other) const
+		{
+			return CurrentIterator != Other.CurrentIterator;
+		}
+
+	public:
+		utf8_iterator begin()
+		{
+			return *this;
+		}
+
+		utf8_iterator end()
+		{
+			return utf8_iterator(EndIterator, EndIterator);
+		}
+
+	private:
+		inline void PopulateCurrentChar()
+		{
+			if (CurrentIterator == EndIterator)
+				return;
+
+			// Reset the bytes of the character
+			CurrentChar.Chars[0] = '\0';
+			CurrentChar.Chars[1] = '\0';
+			CurrentChar.Chars[2] = '\0';
+			CurrentChar.Chars[3] = '\0';
+
+			const int CharByteCount = GetUtf8CharLenght(static_cast<utf_char8_t>(*CurrentIterator));
+			auto IteratorCopy = CurrentIterator;
+
+			for (int i = 0; i < CharByteCount && IteratorCopy != EndIterator; i++)
+			{
+				CurrentChar.Chars[i] = static_cast<utf_char8_t>(*IteratorCopy);
+				IteratorCopy++;
+			}
+		}
+
+	private:
+		byte_iterator_type CurrentIterator;
+		byte_iterator_type EndIterator;
+
+		utf8_bytes CurrentChar;
+	};
 }
 
+#undef UTF_CONSTEXPR
+#undef UTF_CONSTEXPR14
+#undef UTF_CONSTEXPR17
+#undef UTF_CONSTEXPR20
+#undef UTF_CONSTEXPR23
+#undef UTF_CONSTEXPR26
+
+
+// Restore all warnings suppressed for the UTF-N implementation
+#if (defined(_MSC_VER))
+	#pragma warning (pop)
+#elif (defined(__CLANG__) || defined(__GNUC__))
+	#pragma GCC diagnostic pop
+#endif // Warnings
 
 
 int main()
@@ -276,35 +512,54 @@ int main()
 	using namespace UtfN;
 
 	std::string Str = reinterpret_cast<const char*>(u8"Hell 里成");
-
 	std::cout << "\nstr: " << Str << "\n\n";
 
-	utf_16_pair Pair = Utf32ToUtf16Pair(0x1D11E);
+	utf8_iterator<std::string::iterator> MyIterator(Str);
 
-	std::cout << "Pair.Upper: " << std::hex << Pair.Upper << "\n";
-	std::cout << "Pair.Lower: " << std::hex << Pair.Lower << "\n";
+	for (utf8_bytes Char : MyIterator)
+	{
+		std::cout << "StrBytes = " << +Char.Chars[0] << ", " << +Char.Chars[1] << ", " << +Char.Chars[2] << ", " << +Char.Chars[3] << "\n";
+	}
+	std::cout << "\n" << std::endl;
+
+
+	const char Array[] = u8"Hello 里成里成里成 word!";
+
+	utf8_iterator<const char*> My2ndIterator(Array, Array + sizeof(Array));
+
+	for (utf8_bytes Char : My2ndIterator)
+	{
+		std::cout << "ArrayBytes = " << +Char.Chars[0] << ", " << +Char.Chars[1] << ", " << +Char.Chars[2] << ", " << +Char.Chars[3] << "\n";
+	}
+	std::cout << "\n" << std::endl;
+
+
+	utf16_pair Pair = Utf32ToUtf16Pair(0x1D11E);
+
+	std::cout << "Pair.Upper: " << std::hex << static_cast<unsigned short>(Pair.Upper) << "\n";
+	std::cout << "Pair.Lower: " << std::hex << static_cast<unsigned short>(Pair.Lower) << "\n";
 
 	utf_char32_t OrignalChar = Utf16PairToUtf32(Pair);
 	std::cout << "OrignalChar (Utf32 : 0x1D11E): " << std::hex << +OrignalChar << "\n";
 
 
-	utf_8_bytes Utf8Bytes1 = Utf32ToUtf8Bytes(0x41);
+	utf8_bytes Utf8Bytes1 = Utf32ToUtf8Bytes(0x41);
 	std::cout << "1. Utf8Bytes = " << +Utf8Bytes1.Chars[0] << ", " << +Utf8Bytes1.Chars[1] << ", " << +Utf8Bytes1.Chars[2] << ", " << +Utf8Bytes1.Chars[3] << "\n";
 	std::cout << "Orig (Utf32 : 0x41): " << +Utf8BytesToUtf32(Utf8Bytes1) << "\n\n";
 
-	utf_8_bytes Utf8Bytes2 = Utf32ToUtf8Bytes(0xA9);
+	utf8_bytes Utf8Bytes2 = Utf32ToUtf8Bytes(0xA9);
 	std::cout << "2. Utf8Bytes = " << +Utf8Bytes2.Chars[0] << ", " << +Utf8Bytes2.Chars[1] << ", " << +Utf8Bytes2.Chars[2] << ", " << +Utf8Bytes2.Chars[3] << "\n";
 	std::cout << "Orig (Utf32 : 0xA9): " << +Utf8BytesToUtf32(Utf8Bytes2) << "\n\n";
 
-	utf_8_bytes Utf8Bytes3 = Utf32ToUtf8Bytes(0x20AC);
+	utf8_bytes Utf8Bytes3 = Utf32ToUtf8Bytes(0x20AC);
 	std::cout << "3. Utf8Bytes = " << +Utf8Bytes3.Chars[0] << ", " << +Utf8Bytes3.Chars[1] << ", " << +Utf8Bytes3.Chars[2] << ", " << +Utf8Bytes3.Chars[3] << "\n";
 	std::cout << "Orig (Utf32 : 0x20AC): " << +Utf8BytesToUtf32(Utf8Bytes3) << "\n\n";
 
-	utf_8_bytes Utf8Bytes4 = Utf32ToUtf8Bytes(0x1F600);
+	utf8_bytes Utf8Bytes4 = Utf32ToUtf8Bytes(0x1F600);
 	std::cout << "4. Utf8Bytes = " << +Utf8Bytes4.Chars[0] << ", " << +Utf8Bytes4.Chars[1] << ", " << +Utf8Bytes4.Chars[2] << ", " << +Utf8Bytes4.Chars[3] << "\n";
 	std::cout << "Orig (Utf32 : 0x1F600): " << +Utf8BytesToUtf32(Utf8Bytes4) << "\n\n";
 
-	utf_8_bytes Utf8Bytes5 = Utf32ToUtf8Bytes(0x110000);
+	utf8_bytes Utf8Bytes5 = Utf32ToUtf8Bytes(0x110000);
 	std::cout << "E. Utf8Bytes = " << +Utf8Bytes5.Chars[0] << ", " << +Utf8Bytes5.Chars[1] << ", " << +Utf8Bytes5.Chars[2] << ", " << +Utf8Bytes5.Chars[3] << "\n";
 	std::cout << "Orig (Utf32 : 0x110000): " << +Utf8BytesToUtf32(Utf8Bytes5) << "\n\n";
 
