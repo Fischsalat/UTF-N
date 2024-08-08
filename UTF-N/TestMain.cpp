@@ -26,6 +26,7 @@
 	#pragma warning (push)
 #pragma warning (disable: 4514) // C4514 "unreferenced inline function has been removed"
 #pragma warning (disable: 4820) // C4820 "'n' bytes padding added after data member '...'"
+#pragma warning(disable : 4127) // conditional expression is constant
 	#elif (defined(__CLANG__) || defined(__GNUC__))
 #endif // Warnings
 
@@ -45,25 +46,25 @@
 #if (defined(__cpp_constexpr) && __cpp_constexpr >= 201603L)
 	#define UTF_CONSTEXPR17 constexpr
 #else 
-	#define UTF_CONSTEXPR17
+	#define UTF_CONSTEXPR17 inline
 #endif
 
 #if (defined(__cpp_constexpr) && __cpp_constexpr >= 201907L)
 	#define UTF_CONSTEXPR20 constexpr
 #else 
-	#define UTF_CONSTEXPR20
+	#define UTF_CONSTEXPR20 inline
 #endif
 
 #if (defined(__cpp_constexpr) && __cpp_constexpr >= 202211L)
 	#define UTF_CONSTEXPR23 constexpr
 #else 
-	#define UTF_CONSTEXPR23
+	#define UTF_CONSTEXPR23 inline
 #endif
 
 #if (defined(__cpp_constexpr) && __cpp_constexpr >= 202406L)
 	#define UTF_CONSTEXPR26 constexpr
 #else 
-	#define UTF_CONSTEXPR26
+	#define UTF_CONSTEXPR26 inline
 #endif
 
 
@@ -166,7 +167,7 @@ namespace UtfN
 
 	struct utf8_bytes
 	{
-		utf_char8_t Chars[4] = { 0 };
+		utf_char8_t Codepoints[4] = { 0 };
 	};
 
 	struct utf16_pair
@@ -264,43 +265,43 @@ namespace UtfN
 
 		if (Codepoint <= Max1ByteValue)
 		{
-			RetBytes.Chars[0] = static_cast<utf_char8_t>(Codepoint);
+			RetBytes.Codepoints[0] = static_cast<utf_char8_t>(Codepoint);
 		}
 		else if (Codepoint <= Max2ByteValue)
 		{
 			/* Upper 3 bits of first byte are reserved for byte-lengh. */
-			RetBytes.Chars[0] = TwoByteFlag;
-			RetBytes.Chars[0] |= Codepoint >> NumDataBitsInFollowupByte; // Lower bits stored in 2nd byte
+			RetBytes.Codepoints[0] = TwoByteFlag;
+			RetBytes.Codepoints[0] |= Codepoint >> NumDataBitsInFollowupByte; // Lower bits stored in 2nd byte
 
-			RetBytes.Chars[1] |= FollowupByteMask;
-			RetBytes.Chars[1] |= Codepoint & FollowupByteDataMask;
+			RetBytes.Codepoints[1] |= FollowupByteMask;
+			RetBytes.Codepoints[1] |= Codepoint & FollowupByteDataMask;
 		}
 		else if (Codepoint <= Max3ByteValue)
 		{
 			/* Upper 4 bits of first byte are reserved for byte-lengh. */
-			RetBytes.Chars[0] = ThreeByteFlag;
-			RetBytes.Chars[0] |= Codepoint >> (NumDataBitsInFollowupByte * 2); // Lower bits stored in 2nd and 3rd bytes
+			RetBytes.Codepoints[0] = ThreeByteFlag;
+			RetBytes.Codepoints[0] |= Codepoint >> (NumDataBitsInFollowupByte * 2); // Lower bits stored in 2nd and 3rd bytes
 
-			RetBytes.Chars[1] = FollowupByteMask;
-			RetBytes.Chars[1] |= (Codepoint >> NumDataBitsInFollowupByte) & FollowupByteDataMask; // Lower bits stored in 2nd byte
+			RetBytes.Codepoints[1] = FollowupByteMask;
+			RetBytes.Codepoints[1] |= (Codepoint >> NumDataBitsInFollowupByte) & FollowupByteDataMask; // Lower bits stored in 2nd byte
 
-			RetBytes.Chars[2] = FollowupByteMask;
-			RetBytes.Chars[2] |= Codepoint & FollowupByteDataMask;
+			RetBytes.Codepoints[2] = FollowupByteMask;
+			RetBytes.Codepoints[2] |= Codepoint & FollowupByteDataMask;
 		}
 		else if (Codepoint <= Max4ByteValue)
 		{
 			/* Upper 5 bits of first byte are reserved for byte-lengh. */
-			RetBytes.Chars[0] = FourByteFlag;
-			RetBytes.Chars[0] |= Codepoint >> (NumDataBitsInFollowupByte * 3); // Lower bits stored in 2nd, 3rd and 4th bytes
+			RetBytes.Codepoints[0] = FourByteFlag;
+			RetBytes.Codepoints[0] |= Codepoint >> (NumDataBitsInFollowupByte * 3); // Lower bits stored in 2nd, 3rd and 4th bytes
 
-			RetBytes.Chars[1] = FollowupByteMask;
-			RetBytes.Chars[1] |= (Codepoint >> (NumDataBitsInFollowupByte * 2)) & FollowupByteDataMask; // Lower bits stored in 3rd and 4th bytes
+			RetBytes.Codepoints[1] = FollowupByteMask;
+			RetBytes.Codepoints[1] |= (Codepoint >> (NumDataBitsInFollowupByte * 2)) & FollowupByteDataMask; // Lower bits stored in 3rd and 4th bytes
 
-			RetBytes.Chars[2] = FollowupByteMask;
-			RetBytes.Chars[2] |= (Codepoint >> NumDataBitsInFollowupByte) & FollowupByteDataMask; // Lower bits stored in 4th byte
+			RetBytes.Codepoints[2] = FollowupByteMask;
+			RetBytes.Codepoints[2] |= (Codepoint >> NumDataBitsInFollowupByte) & FollowupByteDataMask; // Lower bits stored in 4th byte
 
-			RetBytes.Chars[3] = FollowupByteMask;
-			RetBytes.Chars[3] |= Codepoint & FollowupByteDataMask;
+			RetBytes.Codepoints[3] = FollowupByteMask;
+			RetBytes.Codepoints[3] |= Codepoint & FollowupByteDataMask;
 		}
 		else
 		{
@@ -318,31 +319,31 @@ namespace UtfN
 		using namespace UtfImpl::Utf8;
 
 		/* No flag for any other byte-count is set */
-		if ((Character.Chars[0] & 0b1000'0000) == 0)
+		if ((Character.Codepoints[0] & 0b1000'0000) == 0)
 		{
-			return Character.Chars[0];
+			return Character.Codepoints[0];
 		}
-		else if (Utils::IsFlagSet(Character.Chars[0], FourByteFlag))
+		else if (Utils::IsFlagSet(Character.Codepoints[0], FourByteFlag))
 		{
-			utf_char32_t RetChar = Utils::GetWithClearedFlag(Character.Chars[3], FollowupByteMask);
-			RetChar |= Utils::GetWithClearedFlag(Character.Chars[2], FollowupByteMask) << (NumDataBitsInFollowupByte * 1); // Clear the FollowupByteMask and move the bits to the right position
-			RetChar |= Utils::GetWithClearedFlag(Character.Chars[1], FollowupByteMask) << (NumDataBitsInFollowupByte * 2); // Clear the FollowupByteMask and move the bits to the right position
-			RetChar |= Utils::GetWithClearedFlag(Character.Chars[0], FourByteFlag) << (NumDataBitsInFollowupByte * 3); // Clear the FourByteFlag and move the bits to the right position
+			utf_char32_t RetChar = Utils::GetWithClearedFlag(Character.Codepoints[3], FollowupByteMask);
+			RetChar |= Utils::GetWithClearedFlag(Character.Codepoints[2], FollowupByteMask) << (NumDataBitsInFollowupByte * 1); // Clear the FollowupByteMask and move the bits to the right position
+			RetChar |= Utils::GetWithClearedFlag(Character.Codepoints[1], FollowupByteMask) << (NumDataBitsInFollowupByte * 2); // Clear the FollowupByteMask and move the bits to the right position
+			RetChar |= Utils::GetWithClearedFlag(Character.Codepoints[0], FourByteFlag) << (NumDataBitsInFollowupByte * 3); // Clear the FourByteFlag and move the bits to the right position
 
 			return RetChar;
 		}
-		else if (Utils::IsFlagSet(Character.Chars[0], ThreeByteFlag))
+		else if (Utils::IsFlagSet(Character.Codepoints[0], ThreeByteFlag))
 		{
-			utf_char32_t RetChar = Utils::GetWithClearedFlag(Character.Chars[2], FollowupByteMask);
-			RetChar |= Utils::GetWithClearedFlag(Character.Chars[1], FollowupByteMask) << (NumDataBitsInFollowupByte * 1); // Clear the FollowupByteMask and move the bits to the right position
-			RetChar |= Utils::GetWithClearedFlag(Character.Chars[0], ThreeByteFlag) << (NumDataBitsInFollowupByte * 2); // Clear the ThreeByteFlag and move the bits to the right position
+			utf_char32_t RetChar = Utils::GetWithClearedFlag(Character.Codepoints[2], FollowupByteMask);
+			RetChar |= Utils::GetWithClearedFlag(Character.Codepoints[1], FollowupByteMask) << (NumDataBitsInFollowupByte * 1); // Clear the FollowupByteMask and move the bits to the right position
+			RetChar |= Utils::GetWithClearedFlag(Character.Codepoints[0], ThreeByteFlag) << (NumDataBitsInFollowupByte * 2); // Clear the ThreeByteFlag and move the bits to the right position
 
 			return RetChar;
 		}
-		else if (Utils::IsFlagSet(Character.Chars[0], TwoByteFlag))
+		else if (Utils::IsFlagSet(Character.Codepoints[0], TwoByteFlag))
 		{
-			utf_char32_t RetChar = Utils::GetWithClearedFlag(Character.Chars[1], FollowupByteMask); // Clear the FollowupByteMask and move the bits to the right position
-			RetChar |= Utils::GetWithClearedFlag(Character.Chars[0], TwoByteFlag) << NumDataBitsInFollowupByte; // Clear the TwoByteFlag and move the bits to the right position
+			utf_char32_t RetChar = Utils::GetWithClearedFlag(Character.Codepoints[1], FollowupByteMask); // Clear the FollowupByteMask and move the bits to the right position
+			RetChar |= Utils::GetWithClearedFlag(Character.Codepoints[0], TwoByteFlag) << NumDataBitsInFollowupByte; // Clear the TwoByteFlag and move the bits to the right position
 
 			return RetChar;
 		}
@@ -468,17 +469,17 @@ namespace UtfN
 				return;
 
 			// Reset the bytes of the character
-			CurrentChar.Chars[0] = '\0';
-			CurrentChar.Chars[1] = '\0';
-			CurrentChar.Chars[2] = '\0';
-			CurrentChar.Chars[3] = '\0';
+			CurrentChar.Codepoints[0] = '\0';
+			CurrentChar.Codepoints[1] = '\0';
+			CurrentChar.Codepoints[2] = '\0';
+			CurrentChar.Codepoints[3] = '\0';
 
 			const int CharByteCount = GetUtf8CharLenght(static_cast<utf_char8_t>(*CurrentIterator));
 			auto IteratorCopy = CurrentIterator;
 
 			for (int i = 0; i < CharByteCount && IteratorCopy != EndIterator; i++)
 			{
-				CurrentChar.Chars[i] = static_cast<utf_char8_t>(*IteratorCopy);
+				CurrentChar.Codepoints[i] = static_cast<utf_char8_t>(*IteratorCopy);
 				IteratorCopy++;
 			}
 		}
@@ -488,6 +489,59 @@ namespace UtfN
 		byte_iterator_type EndIterator;
 
 		utf8_bytes CurrentChar;
+	};
+
+	enum class UtfEncodingType
+	{
+		Invalid,
+		Utf8,
+		Utf16,
+		Utf32
+	};
+
+	template<UtfEncodingType Encoding>
+	struct utf_char;
+
+	template<>
+	struct utf_char<UtfEncodingType::Utf8>
+	{
+		utf8_bytes Character;
+
+		UTF_CONSTEXPR14 utf8_bytes GetAsUtf8() const { return Character; }
+		UTF_CONSTEXPR14 utf16_pair GetAsUtf16() const { return Utf8BytesToUtf16(Character); }
+		UTF_CONSTEXPR14 utf_char32_t GetAsUtf32() const { return Utf8BytesToUtf32(static_cast<utf8_bytes>(Character)); }
+
+		UTF_CONSTEXPR14 utf8_bytes Get() { return Character; }
+
+		UTF_CONSTEXPR14 UtfEncodingType GetEncoding() { return UtfEncodingType::Utf8; }
+	};
+
+	template<>
+	struct utf_char<UtfEncodingType::Utf16>
+	{
+		utf16_pair Character;
+
+		UTF_CONSTEXPR14 utf8_bytes GetAsUtf8() const { return Utf16PairToUtf8Bytes(Character); }
+		UTF_CONSTEXPR14 utf16_pair GetAsUtf16() const { return Character; }
+		UTF_CONSTEXPR14 utf_char32_t GetAsUtf32() const { return Utf16PairToUtf32(Character); }
+
+		UTF_CONSTEXPR14 utf16_pair Get() { return Character; }
+
+		UTF_CONSTEXPR14 UtfEncodingType GetEncoding() { return UtfEncodingType::Utf16; }
+	};
+
+	template<>
+	struct utf_char<UtfEncodingType::Utf32>
+	{
+		utf_char32_t Character;
+
+		UTF_CONSTEXPR14 utf8_bytes GetAsUtf8() const { return Utf32ToUtf8Bytes(Character); }
+		UTF_CONSTEXPR14 utf16_pair GetAsUtf16() const { return Utf32ToUtf16Pair(Character); }
+		UTF_CONSTEXPR14 utf_char32_t GetAsUtf32() const { return Character; }
+
+		UTF_CONSTEXPR14 utf_char32_t Get() { return Character; }
+
+		UTF_CONSTEXPR14 UtfEncodingType GetEncoding() { return UtfEncodingType::Utf32; }
 	};
 }
 
@@ -506,6 +560,14 @@ namespace UtfN
 	#pragma GCC diagnostic pop
 #endif // Warnings
 
+int Replace(char* Current, char* End, char* MaxCapacity)
+{
+	(void)Current;
+	(void)End;
+	(void)MaxCapacity;
+
+	return 0;
+}
 
 int main()
 {
@@ -514,11 +576,16 @@ int main()
 	std::string Str = reinterpret_cast<const char*>(u8"Hell 里成");
 	std::cout << "\nstr: " << Str << "\n\n";
 
-	utf8_iterator<std::string::iterator> MyIterator(Str);
+	utf_char<UtfEncodingType::Utf8> RandomChar;
+	RandomChar.Character = utf_char32_t(0xFFFFF);
+
+	auto A = RandomChar.GetAsUtf8();
+
+	utf8_iterator<std::string::const_iterator> MyIterator(Str);
 
 	for (utf8_bytes Char : MyIterator)
 	{
-		std::cout << "StrBytes = " << +Char.Chars[0] << ", " << +Char.Chars[1] << ", " << +Char.Chars[2] << ", " << +Char.Chars[3] << "\n";
+		std::cout << "StrBytes = " << +Char.Codepoints[0] << ", " << +Char.Codepoints[1] << ", " << +Char.Codepoints[2] << ", " << +Char.Codepoints[3] << "\n";
 	}
 	std::cout << "\n" << std::endl;
 
@@ -529,7 +596,7 @@ int main()
 
 	for (utf8_bytes Char : My2ndIterator)
 	{
-		std::cout << "ArrayBytes = " << +Char.Chars[0] << ", " << +Char.Chars[1] << ", " << +Char.Chars[2] << ", " << +Char.Chars[3] << "\n";
+		std::cout << "ArrayBytes = " << +Char.Codepoints[0] << ", " << +Char.Codepoints[1] << ", " << +Char.Codepoints[2] << ", " << +Char.Codepoints[3] << "\n";
 	}
 	std::cout << "\n" << std::endl;
 
@@ -544,23 +611,23 @@ int main()
 
 
 	utf8_bytes Utf8Bytes1 = Utf32ToUtf8Bytes(0x41);
-	std::cout << "1. Utf8Bytes = " << +Utf8Bytes1.Chars[0] << ", " << +Utf8Bytes1.Chars[1] << ", " << +Utf8Bytes1.Chars[2] << ", " << +Utf8Bytes1.Chars[3] << "\n";
+	std::cout << "1. Utf8Bytes = " << +Utf8Bytes1.Codepoints[0] << ", " << +Utf8Bytes1.Codepoints[1] << ", " << +Utf8Bytes1.Codepoints[2] << ", " << +Utf8Bytes1.Codepoints[3] << "\n";
 	std::cout << "Orig (Utf32 : 0x41): " << +Utf8BytesToUtf32(Utf8Bytes1) << "\n\n";
 
 	utf8_bytes Utf8Bytes2 = Utf32ToUtf8Bytes(0xA9);
-	std::cout << "2. Utf8Bytes = " << +Utf8Bytes2.Chars[0] << ", " << +Utf8Bytes2.Chars[1] << ", " << +Utf8Bytes2.Chars[2] << ", " << +Utf8Bytes2.Chars[3] << "\n";
+	std::cout << "2. Utf8Bytes = " << +Utf8Bytes2.Codepoints[0] << ", " << +Utf8Bytes2.Codepoints[1] << ", " << +Utf8Bytes2.Codepoints[2] << ", " << +Utf8Bytes2.Codepoints[3] << "\n";
 	std::cout << "Orig (Utf32 : 0xA9): " << +Utf8BytesToUtf32(Utf8Bytes2) << "\n\n";
 
 	utf8_bytes Utf8Bytes3 = Utf32ToUtf8Bytes(0x20AC);
-	std::cout << "3. Utf8Bytes = " << +Utf8Bytes3.Chars[0] << ", " << +Utf8Bytes3.Chars[1] << ", " << +Utf8Bytes3.Chars[2] << ", " << +Utf8Bytes3.Chars[3] << "\n";
+	std::cout << "3. Utf8Bytes = " << +Utf8Bytes3.Codepoints[0] << ", " << +Utf8Bytes3.Codepoints[1] << ", " << +Utf8Bytes3.Codepoints[2] << ", " << +Utf8Bytes3.Codepoints[3] << "\n";
 	std::cout << "Orig (Utf32 : 0x20AC): " << +Utf8BytesToUtf32(Utf8Bytes3) << "\n\n";
 
 	utf8_bytes Utf8Bytes4 = Utf32ToUtf8Bytes(0x1F600);
-	std::cout << "4. Utf8Bytes = " << +Utf8Bytes4.Chars[0] << ", " << +Utf8Bytes4.Chars[1] << ", " << +Utf8Bytes4.Chars[2] << ", " << +Utf8Bytes4.Chars[3] << "\n";
+	std::cout << "4. Utf8Bytes = " << +Utf8Bytes4.Codepoints[0] << ", " << +Utf8Bytes4.Codepoints[1] << ", " << +Utf8Bytes4.Codepoints[2] << ", " << +Utf8Bytes4.Codepoints[3] << "\n";
 	std::cout << "Orig (Utf32 : 0x1F600): " << +Utf8BytesToUtf32(Utf8Bytes4) << "\n\n";
 
 	utf8_bytes Utf8Bytes5 = Utf32ToUtf8Bytes(0x110000);
-	std::cout << "E. Utf8Bytes = " << +Utf8Bytes5.Chars[0] << ", " << +Utf8Bytes5.Chars[1] << ", " << +Utf8Bytes5.Chars[2] << ", " << +Utf8Bytes5.Chars[3] << "\n";
+	std::cout << "E. Utf8Bytes = " << +Utf8Bytes5.Codepoints[0] << ", " << +Utf8Bytes5.Codepoints[1] << ", " << +Utf8Bytes5.Codepoints[2] << ", " << +Utf8Bytes5.Codepoints[3] << "\n";
 	std::cout << "Orig (Utf32 : 0x110000): " << +Utf8BytesToUtf32(Utf8Bytes5) << "\n\n";
 
 }
