@@ -19,5 +19,8 @@
     <ClInclude Include="UtfN.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="UtfNTests.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
