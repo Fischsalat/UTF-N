@@ -109,19 +109,13 @@ namespace UtfN
 			{
 				return static_cast<ValueType>(Value & static_cast<FlagType>(~Flag));
 			}
-
-			template<uint8_t BitIndex, typename ValueType>
-			UTF_CONSTEXPR UTF_NODISCARD
-				bool IsBitSet(ValueType Value) noexcept
-			{
-				constexpr auto NumBitsInValueType = sizeof(ValueType) * 0x8;
-				static_assert(BitIndex < NumBitsInValueType, "Can not test out of range bit!");
-
-				return Value & (1 << BitIndex);
-			}
 		}
 
+		// wchar_t is a utf16 codepoint on windows, utf32 on linux
 		UTF_CONSTEXPR bool IsWCharUtf32 = sizeof(wchar_t) == 0x4;
+
+		// Any value greater than this is not a valid Unicode symbol
+		UTF_CONSTEXPR utf_char32_t MaxValidUnicodeChar = 0x10FFFF;
 
 		namespace Utf8
 		{
@@ -151,25 +145,85 @@ namespace UtfN
 			UTF_CONSTEXPR utf_char8_t FourByteFlag = 0b1111'0000;
 
 			UTF_CONSTEXPR UTF_NODISCARD
-				bool IsValidFollowupCodepoint(const utf_char8_t Codepoint)
+				bool IsValidFollowupCodepoint(const utf_char8_t Codepoint) noexcept
 			{
 				// Test the upper 2 bytes for the FollowupByteMask
 				return (Codepoint & 0b1100'0000) == FollowupByteMask;
+			}
+
+			// Tests if a utf8 value is a valid Unicode character
+			UTF_CONSTEXPR UTF_NODISCARD
+				bool IsValidUnicodeChar(const utf_char8_t FirstCp, const utf_char8_t SecondCp, const utf_char8_t ThirdCp, const utf_char8_t FourthCp) noexcept
+			{
+				// A single codepoint is always valid
+				if ((FirstCp & 0b1000'0000) == 0)
+					return true;
+
+				// If this is a multibyte character check all of the folloup chars to be valid
+				if (Utils::IsFlagSet(FirstCp, Utf8::FourByteFlag))
+				{
+					return IsValidFollowupCodepoint(SecondCp) && IsValidFollowupCodepoint(ThirdCp) && IsValidFollowupCodepoint(FourthCp);
+				}
+				else if (Utils::IsFlagSet(FirstCp, Utf8::ThreeByteFlag))
+				{
+					return IsValidFollowupCodepoint(SecondCp) && IsValidFollowupCodepoint(ThirdCp);
+				}
+				else if (Utils::IsFlagSet(FirstCp, Utf8::TwoByteFlag))
+				{
+					return IsValidFollowupCodepoint(SecondCp);
+				}
+
+				return false;
 			}
 		}
 
 		namespace Utf16
 		{
 			// Surrogate masks and offset for multibyte utf16 characters
-			UTF_CONSTEXPR utf_char16_t HighSurrogateBitmask = 0xD800;
-			UTF_CONSTEXPR utf_char16_t LowerSurrogateBitmask = 0xDC00;
+			UTF_CONSTEXPR utf_char16_t HighSurrogateRangeStart = 0xD800;
+			UTF_CONSTEXPR utf_char16_t LowerSurrogateRangeStart = 0xDC00;
 
 			UTF_CONSTEXPR utf_char32_t SurrogatePairOffset = 0x10000;
+
+			// Unicode range for 2byte utf16 values
+			UTF_CONSTEXPR utf_char32_t SurrogateRangeLowerBounds = 0xD800;
+			UTF_CONSTEXPR utf_char32_t SurrogateRangeUpperBounds = 0xDFFF;
+
+
+			UTF_CONSTEXPR UTF_NODISCARD
+				bool IsHighSurrogate(const utf_char16_t Codepoint) noexcept
+			{
+				// Range [0xD800 - 0xDC00[
+				return Codepoint >= HighSurrogateRangeStart && Codepoint < LowerSurrogateRangeStart;
+			}
+			UTF_CONSTEXPR UTF_NODISCARD
+				bool IsLowSurrogate(const utf_char16_t Codepoint) noexcept
+			{
+				// Range [0xDC00 - 0xDFFF]
+				return Codepoint >= LowerSurrogateRangeStart && Codepoint <= SurrogateRangeUpperBounds;
+			}
+
+			// Tests if a utf16 value is a valid Unicode character
+			UTF_CONSTEXPR UTF_NODISCARD
+				bool IsValidUnicodeChar(const utf_char16_t LowerCodepoint, const utf_char16_t UpperCodepoint) noexcept
+			{
+				const bool IsValidHighSurrogate = IsHighSurrogate(UpperCodepoint);
+				const bool IsValidLowSurrogate = IsLowSurrogate(LowerCodepoint);
+
+				// Either both are valid suorrogates, or none are
+				return (IsValidHighSurrogate && IsValidLowSurrogate) || (!IsValidHighSurrogate && !IsValidLowSurrogate);
+			}
 		}
 
 		namespace Utf32
 		{
-
+			// Tests if a utf32 value is a valid Unicode character
+			UTF_CONSTEXPR UTF_NODISCARD
+				bool IsValidUnicodeChar(const utf_char32_t Codepoint) noexcept
+			{
+				// Character must be within the valid unicode range and must not be within the range of Surrogate-values
+				return Codepoint < MaxValidUnicodeChar && (Codepoint < Utf16::SurrogateRangeLowerBounds || Codepoint > Utf16::SurrogateRangeUpperBounds);
+			}
 		}
 	}
 
@@ -180,12 +234,12 @@ namespace UtfN
 
 	struct utf16_pair
 	{
-		utf_char16_t Upper = 0;
 		utf_char16_t Lower = 0;
+		utf_char16_t Upper = 0;
 	};
 
 	UTF_CONSTEXPR inline
-		bool operator==(const utf8_bytes Left, const utf8_bytes Right)
+		bool operator==(const utf8_bytes Left, const utf8_bytes Right) noexcept
 	{
 		return Left.Codepoints[0] == Right.Codepoints[0]
 			&& Left.Codepoints[1] == Right.Codepoints[1]
@@ -193,24 +247,24 @@ namespace UtfN
 			&& Left.Codepoints[3] == Right.Codepoints[3];
 	}
 	UTF_CONSTEXPR inline
-		bool operator!=(const utf8_bytes Left, const utf8_bytes Right)
+		bool operator!=(const utf8_bytes Left, const utf8_bytes Right) noexcept
 	{
 		return !(Left == Right);
 	}
 
 	UTF_CONSTEXPR inline
-		bool operator==(const utf16_pair Left, const utf16_pair Right)
+		bool operator==(const utf16_pair Left, const utf16_pair Right) noexcept
 	{
 		return Left.Upper == Right.Upper && Left.Lower == Right.Lower;
 	}
 	UTF_CONSTEXPR inline
-		bool operator!=(const utf16_pair Left, const utf16_pair Right)
+		bool operator!=(const utf16_pair Left, const utf16_pair Right) noexcept
 	{
 		return !(Left == Right);
 	}
 
 	UTF_CONSTEXPR UTF_NODISCARD
-		int GetUtf8CharLenght(const utf_char8_t C)
+		int GetUtf8CharLenght(const utf_char8_t C) noexcept
 	{
 		using namespace UtfImpl;
 
@@ -239,9 +293,9 @@ namespace UtfN
 	}
 
 	UTF_CONSTEXPR UTF_NODISCARD
-		int GetUtf16CharLenght(const utf_char16_t C)
+		int GetUtf16CharLenght(const utf_char16_t C) noexcept
 	{
-		if (UtfImpl::Utils::IsFlagSet(C, UtfImpl::Utf16::HighSurrogateBitmask))
+		if (UtfImpl::Utf16::IsHighSurrogate(C))
 			return 0x2;
 
 		return 0x1;
@@ -252,6 +306,9 @@ namespace UtfN
 	{
 		using namespace UtfImpl;
 
+		if (!Utf32::IsValidUnicodeChar(Codepoint))
+			return utf16_pair{};
+
 		utf16_pair RetCharPair;
 
 		if (Codepoint > std::numeric_limits<utf_char16_t>::max())
@@ -261,8 +318,9 @@ namespace UtfN
 			RetCharPair.Upper = (PreparedCodepoint >> 10) & 0b1111111111;
 			RetCharPair.Lower = PreparedCodepoint & 0b1111111111;
 
-			RetCharPair.Upper |= Utf16::HighSurrogateBitmask;
-			RetCharPair.Lower |= Utf16::LowerSurrogateBitmask;
+			// Surrogate-pair starting ranges for higher/lower surrogates
+			RetCharPair.Upper += Utf16::HighSurrogateRangeStart;
+			RetCharPair.Lower += Utf16::LowerSurrogateRangeStart;
 
 			return RetCharPair;
 		}
@@ -277,10 +335,15 @@ namespace UtfN
 	{
 		using namespace UtfImpl;
 
+		// The surrogate-values are not valid Unicode codepoints
+		if (!Utf16::IsValidUnicodeChar(Character.Lower, Character.Upper))
+			return utf_char32_t{ 0 };
+
 		if (Character.Upper)
 		{
-			const utf_char16_t UpperCodepointWithoutSurrogate = Utils::GetWithClearedFlag(Character.Upper, Utf16::HighSurrogateBitmask);
-			const utf_char16_t LowerCodepointWithoutSurrogate = Utils::GetWithClearedFlag(Character.Lower, Utf16::LowerSurrogateBitmask);
+			// Move the characters back from the surrogate range to the normal range
+			const utf_char16_t UpperCodepointWithoutSurrogate = static_cast<utf_char16_t>(Character.Upper - Utf16::HighSurrogateRangeStart);
+			const utf_char16_t LowerCodepointWithoutSurrogate = static_cast<utf_char16_t>(Character.Lower - Utf16::LowerSurrogateRangeStart);
 
 			return ((static_cast<utf_char32_t>(UpperCodepointWithoutSurrogate) << 10) | LowerCodepointWithoutSurrogate) + Utf16::SurrogatePairOffset;
 		}
@@ -293,6 +356,9 @@ namespace UtfN
 	{
 		using namespace UtfImpl;
 		using namespace UtfImpl::Utf8;
+
+		if (!Utf32::IsValidUnicodeChar(Codepoint))
+			return utf8_bytes{};
 
 		utf8_bytes RetBytes;
 
@@ -350,6 +416,9 @@ namespace UtfN
 	{
 		using namespace UtfImpl;
 		using namespace UtfImpl::Utf8;
+
+		if (!Utf8::IsValidUnicodeChar(Character.Codepoints[0], Character.Codepoints[1], Character.Codepoints[2], Character.Codepoints[3]))
+			return utf_char32_t{ 0 };
 
 		/* No flag for any other byte-count is set */
 		if ((Character.Codepoints[0] & 0b1000'0000) == 0)

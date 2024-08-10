@@ -1,6 +1,23 @@
 ﻿#include "UtfN.hpp"
+#include "UtfNTests.hpp"
+
+// Lower warning-level and turn off certain warnings for STL compilation
+#if (defined(_MSC_VER))
+#pragma warning (push, 2) // Push warnings and set warn-level to 3
+#pragma warning(disable : 4365) // signed/unsigned mismatch
+#elif (defined(__CLANG__) || defined(__GNUC__))
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#endif
 
 #include <iostream>
+
+// Restore warnings-levels after STL includes
+#if (defined(_MSC_VER))
+#pragma warning (pop)
+#elif (defined(__CLANG__) || defined(__GNUC__))
+#pragma GCC diagnostic pop
+#endif // Warnings
 
 int Replace(char* Current, char* End, char* MaxCapacity)
 {
