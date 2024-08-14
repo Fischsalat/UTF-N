@@ -13,6 +13,11 @@
 #include <cstdint>
 #include <type_traits>
 
+#ifdef _DEBUG
+#include <stdexcept>
+#endif // _DEBUG
+
+
 // Restore warnings-levels after STL includes
 #if (defined(_MSC_VER))
 #pragma warning (pop)
@@ -271,8 +276,132 @@ namespace UtfN
 		return !(Left == Right);
 	}
 
+
+	enum class UtfEncodingType
+	{
+		Invalid,
+		Utf8,
+		Utf16,
+		Utf32
+	};
+
+	template<UtfEncodingType Encoding>
+	struct utf_char;
+
+	typedef utf_char<UtfEncodingType::Utf8> utf_char8;
+	typedef utf_char<UtfEncodingType::Utf16> utf_char16;
+	typedef utf_char<UtfEncodingType::Utf32> utf_char32;
+
+	template<>
+	struct utf_char<UtfEncodingType::Utf8>
+	{
+		utf8_bytes Character = { 0 };
+
+	public:
+		UTF_CONSTEXPR utf_char() = default;
+		UTF_CONSTEXPR utf_char(utf_char&&) = default;
+		UTF_CONSTEXPR utf_char(const utf_char&) = default;
+
+		UTF_CONSTEXPR utf_char(utf8_bytes InChar) noexcept;
+
+		UTF_CONSTEXPR utf_char(const utf_cp8_t* SingleCharString) noexcept;
+
+	public:
+		UTF_CONSTEXPR utf_char& operator=(utf_char&&) = default;
+		UTF_CONSTEXPR utf_char& operator=(const utf_char&) = default;
+
+		UTF_CONSTEXPR utf_char& operator=(utf8_bytes inBytse) noexcept;
+
+	public:
+		UTF_CONSTEXPR UTF_NODISCARD       utf_cp8_t&  operator[](const uint8_t Index);
+		UTF_CONSTEXPR UTF_NODISCARD const utf_cp8_t&  operator[](const uint8_t Index) const;
+
+		UTF_CONSTEXPR UTF_NODISCARD bool operator==(utf_char8 Other) const noexcept;
+		UTF_CONSTEXPR UTF_NODISCARD bool operator!=(utf_char8 Other) const noexcept;
+
+	public:
+		UTF_CONSTEXPR UTF_NODISCARD utf_char8 GetAsUtf8() const noexcept;
+		UTF_CONSTEXPR UTF_NODISCARD utf_char16 GetAsUtf16() const noexcept;
+		UTF_CONSTEXPR UTF_NODISCARD utf_char32 GetAsUtf32() const noexcept;
+
+		UTF_CONSTEXPR UTF_NODISCARD utf_char8 Get() const;
+
+		UTF_CONSTEXPR UTF_NODISCARD UtfEncodingType GetEncoding() const noexcept;
+		UTF_CONSTEXPR UTF_NODISCARD uint8_t GetByteSize() const noexcept;
+	};
+
+	template<>
+	struct utf_char<UtfEncodingType::Utf16>
+	{
+		utf16_pair Character = { 0 };
+
+	public:
+		UTF_CONSTEXPR utf_char() = default;
+		UTF_CONSTEXPR utf_char(utf_char&&) = default;
+		UTF_CONSTEXPR utf_char(const utf_char&) = default;
+
+		UTF_CONSTEXPR utf_char(utf16_pair InChar) noexcept;
+
+		UTF_CONSTEXPR utf_char(const utf_cp16_t* SingleCharString) noexcept;
+
+	public:
+		UTF_CONSTEXPR utf_char& operator=(utf_char&&) = default;
+		UTF_CONSTEXPR utf_char& operator=(const utf_char&) = default;
+
+		UTF_CONSTEXPR utf_char& operator=(utf16_pair inBytse) noexcept;
+
+	public:
+		UTF_CONSTEXPR UTF_NODISCARD bool operator==(utf_char16 Other) const noexcept;
+		UTF_CONSTEXPR UTF_NODISCARD bool operator!=(utf_char16 Other) const noexcept;
+
+	public:
+		UTF_CONSTEXPR UTF_NODISCARD utf_char8 GetAsUtf8() const noexcept;
+		UTF_CONSTEXPR UTF_NODISCARD utf_char16 GetAsUtf16() const noexcept;
+		UTF_CONSTEXPR UTF_NODISCARD utf_char32 GetAsUtf32() const noexcept;
+
+		UTF_CONSTEXPR UTF_NODISCARD utf_char16 Get() const noexcept;
+
+		UTF_CONSTEXPR UTF_NODISCARD UtfEncodingType GetEncoding() const noexcept;
+		UTF_CONSTEXPR UTF_NODISCARD uint8_t GetByteSize() const noexcept;
+	};
+
+	template<>
+	struct utf_char<UtfEncodingType::Utf32>
+	{
+		utf_cp32_t Character = { 0 };
+
+	public:
+		UTF_CONSTEXPR utf_char() = default;
+		UTF_CONSTEXPR utf_char(utf_char&&) = default;
+		UTF_CONSTEXPR utf_char(const utf_char&) = default;
+
+		UTF_CONSTEXPR utf_char(utf_cp32_t InChar) noexcept;
+
+		UTF_CONSTEXPR utf_char(const utf_cp32_t* SingleCharString) noexcept;
+
+	public:
+		UTF_CONSTEXPR utf_char& operator=(utf_char&&) = default;
+		UTF_CONSTEXPR utf_char& operator=(const utf_char&) = default;
+
+		UTF_CONSTEXPR utf_char& operator=(utf_cp32_t inBytse) noexcept;
+
+	public:
+		UTF_CONSTEXPR UTF_NODISCARD bool operator==(utf_char32 Other) const noexcept;
+		UTF_CONSTEXPR UTF_NODISCARD bool operator!=(utf_char32 Other) const noexcept;
+
+	public:
+		UTF_CONSTEXPR UTF_NODISCARD utf_char8 GetAsUtf8() const noexcept;
+		UTF_CONSTEXPR UTF_NODISCARD utf_char16 GetAsUtf16() const noexcept;
+		UTF_CONSTEXPR UTF_NODISCARD utf_char32 GetAsUtf32() const noexcept;
+
+		UTF_CONSTEXPR UTF_NODISCARD utf_char32 Get() const noexcept;
+
+		UTF_CONSTEXPR UTF_NODISCARD UtfEncodingType GetEncoding() const noexcept;
+		UTF_CONSTEXPR UTF_NODISCARD uint8_t GetByteSize() const noexcept;
+	};
+
 	UTF_CONSTEXPR UTF_NODISCARD
-		int GetUtf8CharLenght(const utf_cp8_t C) noexcept
+		uint8_t GetUtf8CharLenght(const utf_cp8_t C) noexcept
 	{
 		using namespace UtfImpl;
 
@@ -301,7 +430,7 @@ namespace UtfN
 	}
 
 	UTF_CONSTEXPR UTF_NODISCARD
-		int GetUtf16CharLenght(const utf_cp16_t UpperCodepoint) noexcept
+		uint8_t GetUtf16CharLenght(const utf_cp16_t UpperCodepoint) noexcept
 	{
 		if (UtfImpl::Utf16::IsHighSurrogate(UpperCodepoint))
 			return 0x2;
@@ -360,13 +489,13 @@ namespace UtfN
 	}
 
 	UTF_CONSTEXPR UTF_NODISCARD
-		utf8_bytes Utf32ToUtf8Bytes(const utf_cp32_t Codepoint) noexcept
+		utf_char8 Utf32ToUtf8Bytes(const utf_cp32_t Codepoint) noexcept
 	{
 		using namespace UtfImpl;
 		using namespace UtfImpl::Utf8;
 
 		if (!Utf32::IsValidUnicodeChar(Codepoint))
-			return utf8_bytes{};
+			return utf_char8{};
 
 		utf8_bytes RetBytes;
 
@@ -420,50 +549,50 @@ namespace UtfN
 	}
 
 	UTF_CONSTEXPR UTF_NODISCARD
-		utf_cp32_t Utf8BytesToUtf32(const utf8_bytes Character) noexcept
+		utf_cp32_t Utf8BytesToUtf32(const utf_char8 Character) noexcept
 	{
 		using namespace UtfImpl;
 		using namespace UtfImpl::Utf8;
 
 		/* No flag for any other byte-count is set */
-		if ((Character.Codepoints[0] & 0b1000'0000) == 0)
+		if ((Character[0] & 0b1000'0000) == 0)
 		{
-			if (!Utf8::IsValidUtf8Sequence<1>(Character.Codepoints[0], Character.Codepoints[1], Character.Codepoints[2], Character.Codepoints[3])) // Verifies encoding
+			if (!Utf8::IsValidUtf8Sequence<1>(Character[0], Character[1], Character[2], Character[3])) // Verifies encoding
 				return utf_cp32_t{ 0 };
 
-			return Character.Codepoints[0];
+			return Character[0];
 		}
-		else if (Utils::IsFlagSet(Character.Codepoints[0], FourByteFlag))
+		else if (Utils::IsFlagSet(Character[0], FourByteFlag))
 		{
-			utf_cp32_t RetChar = Utils::GetWithClearedFlag(Character.Codepoints[3], FollowupByteMask);
-			RetChar |= Utils::GetWithClearedFlag(Character.Codepoints[2], FollowupByteMask) << (NumDataBitsInFollowupByte * 1); // Clear the FollowupByteMask and move the bits to the right position
-			RetChar |= Utils::GetWithClearedFlag(Character.Codepoints[1], FollowupByteMask) << (NumDataBitsInFollowupByte * 2); // Clear the FollowupByteMask and move the bits to the right position
-			RetChar |= Utils::GetWithClearedFlag(Character.Codepoints[0], FourByteFlag) << (NumDataBitsInFollowupByte * 3); // Clear the FourByteFlag and move the bits to the right position
+			utf_cp32_t RetChar = Utils::GetWithClearedFlag(Character[3], FollowupByteMask);
+			RetChar |= Utils::GetWithClearedFlag(Character[2], FollowupByteMask) << (NumDataBitsInFollowupByte * 1); // Clear the FollowupByteMask and move the bits to the right position
+			RetChar |= Utils::GetWithClearedFlag(Character[1], FollowupByteMask) << (NumDataBitsInFollowupByte * 2); // Clear the FollowupByteMask and move the bits to the right position
+			RetChar |= Utils::GetWithClearedFlag(Character[0], FourByteFlag) << (NumDataBitsInFollowupByte * 3); // Clear the FourByteFlag and move the bits to the right position
 
-			if (!Utf8::IsValidUtf8Sequence<4>(Character.Codepoints[0], Character.Codepoints[1], Character.Codepoints[2], Character.Codepoints[3])  // Verifies encoding
+			if (!Utf8::IsValidUtf8Sequence<4>(Character[0], Character[1], Character[2], Character[3])  // Verifies encoding
 				|| !Utf32::IsValidUnicodeChar(RetChar)) // Verifies ranges
 				return utf_cp32_t{ 0 };
 
 			return RetChar;
 		}
-		else if (Utils::IsFlagSet(Character.Codepoints[0], ThreeByteFlag))
+		else if (Utils::IsFlagSet(Character[0], ThreeByteFlag))
 		{
-			utf_cp32_t RetChar = Utils::GetWithClearedFlag(Character.Codepoints[2], FollowupByteMask);
-			RetChar |= Utils::GetWithClearedFlag(Character.Codepoints[1], FollowupByteMask) << (NumDataBitsInFollowupByte * 1); // Clear the FollowupByteMask and move the bits to the right position
-			RetChar |= Utils::GetWithClearedFlag(Character.Codepoints[0], ThreeByteFlag) << (NumDataBitsInFollowupByte * 2); // Clear the ThreeByteFlag and move the bits to the right position
+			utf_cp32_t RetChar = Utils::GetWithClearedFlag(Character[2], FollowupByteMask);
+			RetChar |= Utils::GetWithClearedFlag(Character[1], FollowupByteMask) << (NumDataBitsInFollowupByte * 1); // Clear the FollowupByteMask and move the bits to the right position
+			RetChar |= Utils::GetWithClearedFlag(Character[0], ThreeByteFlag) << (NumDataBitsInFollowupByte * 2); // Clear the ThreeByteFlag and move the bits to the right position
 
-			if (!Utf8::IsValidUtf8Sequence<3>(Character.Codepoints[0], Character.Codepoints[1], Character.Codepoints[2], Character.Codepoints[3]) // Verifies encoding
+			if (!Utf8::IsValidUtf8Sequence<3>(Character[0], Character[1], Character[2], Character[3]) // Verifies encoding
 				|| !Utf32::IsValidUnicodeChar(RetChar)) // Verifies ranges
 				return utf_cp32_t{ 0 };
 
 			return RetChar;
 		}
-		else if (Utils::IsFlagSet(Character.Codepoints[0], TwoByteFlag))
+		else if (Utils::IsFlagSet(Character[0], TwoByteFlag))
 		{
-			utf_cp32_t RetChar = Utils::GetWithClearedFlag(Character.Codepoints[1], FollowupByteMask); // Clear the FollowupByteMask and move the bits to the right position
-			RetChar |= Utils::GetWithClearedFlag(Character.Codepoints[0], TwoByteFlag) << NumDataBitsInFollowupByte; // Clear the TwoByteFlag and move the bits to the right position
+			utf_cp32_t RetChar = Utils::GetWithClearedFlag(Character[1], FollowupByteMask); // Clear the FollowupByteMask and move the bits to the right position
+			RetChar |= Utils::GetWithClearedFlag(Character[0], TwoByteFlag) << NumDataBitsInFollowupByte; // Clear the TwoByteFlag and move the bits to the right position
 
-			if (!Utf8::IsValidUtf8Sequence<2>(Character.Codepoints[0], Character.Codepoints[1], Character.Codepoints[2], Character.Codepoints[3]) // Verifies encoding
+			if (!Utf8::IsValidUtf8Sequence<2>(Character[0], Character[1], Character[2], Character[3]) // Verifies encoding
 				|| !Utf32::IsValidUnicodeChar(RetChar)) // Verifies ranges
 				return utf_cp32_t{ 0 };
 
@@ -477,7 +606,7 @@ namespace UtfN
 	}
 
 	UTF_CONSTEXPR UTF_NODISCARD
-		utf8_bytes Utf16PairToUtf8Bytes(const utf16_pair Character) noexcept
+		utf_char8 Utf16PairToUtf8Bytes(const utf16_pair Character) noexcept
 	{
 		const utf_cp32_t As32BitChar = Utf16PairToUtf32(Character);
 
@@ -616,7 +745,7 @@ namespace UtfN
 	template<typename CodepointType,
 		typename std::enable_if<sizeof(CodepointType) == 0x1 && std::is_integral<CodepointType>::value, int>::type = 0>
 	UTF_CONSTEXPR UTF_NODISCARD
-		utf8_bytes ParseUtf8CharFromStr(const CodepointType* Str)
+		utf_char8 ParseUtf8CharFromStr(const CodepointType* Str)
 	{
 		if (!Str)
 			return utf8_bytes{};
@@ -647,10 +776,10 @@ namespace UtfN
 	template<typename CodepointType,
 		typename std::enable_if<sizeof(CodepointType) == 0x2 && std::is_integral<CodepointType>::value, int>::type = 0>
 	UTF_CONSTEXPR UTF_NODISCARD
-		utf16_pair ParseUtf16CharFromStr(const CodepointType* Str)
+		utf_char16 ParseUtf16CharFromStr(const CodepointType* Str)
 	{
 		if (!Str)
-			return utf16_pair{};
+			return utf_char16{};
 
 		const utf_cp16_t FirstCodepoint = static_cast<utf_cp16_t>(Str[0]);
 
@@ -663,130 +792,240 @@ namespace UtfN
 	template<typename CodepointType,
 		typename std::enable_if<sizeof(CodepointType) == 0x4 && std::is_integral<CodepointType>::value, int>::type = 0>
 	UTF_CONSTEXPR UTF_NODISCARD
-		utf_cp32_t ParseUtf32CharFromStr(const CodepointType* Str)
+		utf_char32 ParseUtf32CharFromStr(const CodepointType* Str)
 	{
 		if (!Str)
-			return 0x0;
+			return utf_char32{};
 
 		return static_cast<utf_cp32_t>(Str[0]);
 	}
 
-	enum class UtfEncodingType
+
+
+	// utf_char spezialization-implementation for Utf8
+	UTF_CONSTEXPR utf_char<UtfEncodingType::Utf8>::utf_char(utf8_bytes InChar) noexcept
+		: Character(InChar)
 	{
-		Invalid,
-		Utf8,
-		Utf16,
-		Utf32
-	};
+	}
 
-	template<UtfEncodingType Encoding>
-	struct utf_char;
-
-	template<>
-	struct utf_char<UtfEncodingType::Utf8>
+	UTF_CONSTEXPR utf_char<UtfEncodingType::Utf8>::utf_char(const utf_cp8_t* SingleCharString) noexcept
+		: utf_char<UtfEncodingType::Utf8>(ParseUtf8CharFromStr(SingleCharString))
 	{
-		utf8_bytes Character = { 0 };
+	}
 
-	public:
-		UTF_CONSTEXPR utf_char() = default;
-		UTF_CONSTEXPR utf_char(utf_char&&) = default;
-		UTF_CONSTEXPR utf_char(const utf_char&) = default;
-
-		UTF_CONSTEXPR utf_char(utf8_bytes InChar) noexcept
-			: Character(InChar)
-		{
-		}
-
-		UTF_CONSTEXPR utf_char(const utf_cp8_t* SingleCharString) noexcept
-			: Character(ParseUtf8CharFromStr(SingleCharString))
-		{
-		}
-
-	public:
-		UTF_CONSTEXPR utf_char& operator=(utf_char&&) = default;
-		UTF_CONSTEXPR utf_char& operator=(const utf_char&) = default;
-
-		UTF_CONSTEXPR utf_char& operator=(utf8_bytes inBytse) noexcept
-		{
-			Character.Codepoints[0] = inBytse.Codepoints[0];
-			Character.Codepoints[1] = inBytse.Codepoints[1];
-			Character.Codepoints[2] = inBytse.Codepoints[2];
-			Character.Codepoints[3] = inBytse.Codepoints[3];
-
-			return *this;
-		}
-
-	public:
-		UTF_CONSTEXPR UTF_NODISCARD	utf8_bytes GetAsUtf8() const noexcept { return Character; }
-		UTF_CONSTEXPR UTF_NODISCARD utf16_pair GetAsUtf16() const noexcept { return Utf8BytesToUtf16(Character); }
-		UTF_CONSTEXPR UTF_NODISCARD utf_cp32_t GetAsUtf32() const noexcept { return Utf8BytesToUtf32(static_cast<utf8_bytes>(Character)); }
-
-		UTF_CONSTEXPR UTF_NODISCARD utf8_bytes Get() const { return Character; }
-
-		UTF_CONSTEXPR UTF_NODISCARD UtfEncodingType GetEncoding() const noexcept { return UtfEncodingType::Utf8; }
-		UTF_CONSTEXPR UTF_NODISCARD uint8_t GetByteSize() const noexcept { return GetUtf8CharLenght(Character.Codepoints[0]); }
-	};
-
-	template<>
-	struct utf_char<UtfEncodingType::Utf16>
+	UTF_CONSTEXPR utf_char<UtfEncodingType::Utf8>& utf_char<UtfEncodingType::Utf8>::operator=(utf8_bytes inBytse) noexcept
 	{
-		utf16_pair Character = { 0 };
+		Character.Codepoints[0] = inBytse.Codepoints[0];
+		Character.Codepoints[1] = inBytse.Codepoints[1];
+		Character.Codepoints[2] = inBytse.Codepoints[2];
+		Character.Codepoints[3] = inBytse.Codepoints[3];
 
-		UTF_CONSTEXPR utf_char() = default;
-		UTF_CONSTEXPR utf_char(utf_char&&) = default;
-		UTF_CONSTEXPR utf_char(const utf_char&) = default;
+		return *this;
+	}
 
-		UTF_CONSTEXPR utf_char(utf16_pair InChar) noexcept
-			: Character(InChar)
-		{
-		}
-
-		UTF_CONSTEXPR utf_char(const utf_cp16_t* SingleCharString) noexcept
-			: Character(ParseUtf16CharFromStr(SingleCharString))
-		{
-		}
-
-	public:
-		UTF_CONSTEXPR utf_char& operator=(utf_char&&) = default;
-		UTF_CONSTEXPR utf_char& operator=(const utf_char&) = default;
-
-		UTF_CONSTEXPR utf_char& operator=(utf16_pair inBytse) noexcept
-		{
-			Character.Upper = inBytse.Upper;
-			Character.Lower = inBytse.Lower;
-
-			return *this;
-		}
-
-	public:
-		UTF_CONSTEXPR UTF_NODISCARD utf8_bytes GetAsUtf8() const noexcept { return Utf16PairToUtf8Bytes(Character); }
-		UTF_CONSTEXPR UTF_NODISCARD utf16_pair GetAsUtf16() const noexcept { return Character; }
-		UTF_CONSTEXPR UTF_NODISCARD utf_cp32_t GetAsUtf32() const noexcept { return Utf16PairToUtf32(Character); }
-
-		UTF_CONSTEXPR UTF_NODISCARD utf16_pair Get() const noexcept { return Character; }
-
-		UTF_CONSTEXPR UTF_NODISCARD UtfEncodingType GetEncoding() const noexcept { return UtfEncodingType::Utf16; }
-		UTF_CONSTEXPR UTF_NODISCARD uint8_t GetByteSize() const noexcept { return GetUtf16CharLenght(Character.Upper); }
-	};
-
-	template<>
-	struct utf_char<UtfEncodingType::Utf32>
+	UTF_CONSTEXPR UTF_NODISCARD
+		bool utf_char<UtfEncodingType::Utf8>::operator==(utf_char8 Other) const noexcept
 	{
-		utf_cp32_t Character = { 0 };
+		return Character == Other.Character;
+	}
 
-		UTF_CONSTEXPR UTF_NODISCARD utf8_bytes GetAsUtf8() const noexcept { return Utf32ToUtf8Bytes(Character); }
-		UTF_CONSTEXPR UTF_NODISCARD utf16_pair GetAsUtf16() const noexcept { return Utf32ToUtf16Pair(Character); }
-		UTF_CONSTEXPR UTF_NODISCARD utf_cp32_t GetAsUtf32() const noexcept { return Character; }
+	UTF_CONSTEXPR UTF_NODISCARD 
+		utf_cp8_t& utf_char<UtfEncodingType::Utf8>::operator[](const uint8_t Index)
+	{
+#ifdef _DEBUG
+		if (Index >= 0x4)
+			throw std::out_of_range("Index was greater than 4!");
+#endif // _DEBUG
+		return Character.Codepoints[Index];
+	}
 
-		UTF_CONSTEXPR UTF_NODISCARD utf_cp32_t Get() const noexcept { return Character; }
+	UTF_CONSTEXPR UTF_NODISCARD
+		const utf_cp8_t& utf_char<UtfEncodingType::Utf8>::operator[](const uint8_t Index) const
+	{
+#ifdef _DEBUG
+		if (Index >= 0x4)
+			throw std::out_of_range("Index was greater than 4!");
+#endif // _DEBUG
+		return Character.Codepoints[Index];
+	}
 
-		UTF_CONSTEXPR UTF_NODISCARD UtfEncodingType GetEncoding() const noexcept { return UtfEncodingType::Utf32; }
-		UTF_CONSTEXPR UTF_NODISCARD uint8_t GetByteSize() const noexcept { return 0x1; }
-	};
+	UTF_CONSTEXPR UTF_NODISCARD
+		bool utf_char<UtfEncodingType::Utf8>::operator!=(utf_char8 Other) const noexcept
+	{
+		return Character != Other.Character;
+	}
+	
+	UTF_CONSTEXPR UTF_NODISCARD
+		utf_char8 utf_char<UtfEncodingType::Utf8>::GetAsUtf8() const noexcept
+	{
+		return Character;
+	}
 
-	typedef utf_char<UtfEncodingType::Utf8> utf_char8;
-	typedef utf_char<UtfEncodingType::Utf16> utf_char16;
-	typedef utf_char<UtfEncodingType::Utf32> utf_char32;
+	UTF_CONSTEXPR UTF_NODISCARD
+		utf_char16 utf_char<UtfEncodingType::Utf8>::GetAsUtf16() const noexcept
+	{
+		return Utf8BytesToUtf16(Character);
+	}
+
+	UTF_CONSTEXPR UTF_NODISCARD
+		utf_char32 utf_char<UtfEncodingType::Utf8>::GetAsUtf32() const noexcept
+	{
+		return Utf8BytesToUtf32(static_cast<utf8_bytes>(Character));
+	}
+
+	UTF_CONSTEXPR UTF_NODISCARD
+		utf_char8 utf_char<UtfEncodingType::Utf8>::Get() const
+	{
+		return Character;
+	}
+	
+	UTF_CONSTEXPR UTF_NODISCARD
+		UtfEncodingType utf_char<UtfEncodingType::Utf8>::GetEncoding() const noexcept
+	{
+		return UtfEncodingType::Utf8;
+	}
+
+	UTF_CONSTEXPR UTF_NODISCARD
+		uint8_t utf_char<UtfEncodingType::Utf8>::GetByteSize() const noexcept
+	{
+		return GetUtf8CharLenght(Character.Codepoints[0]);
+	}
+
+
+
+	// utf_char spezialization-implementation for Utf8
+	UTF_CONSTEXPR utf_char<UtfEncodingType::Utf16>::utf_char(utf16_pair InChar) noexcept
+		: Character(InChar)
+	{
+	}
+
+	UTF_CONSTEXPR utf_char<UtfEncodingType::Utf16>::utf_char(const utf_cp16_t* SingleCharString) noexcept
+		: utf_char<UtfEncodingType::Utf16>(ParseUtf16CharFromStr(SingleCharString))
+	{
+	}
+
+	UTF_CONSTEXPR utf_char<UtfEncodingType::Utf16>& utf_char<UtfEncodingType::Utf16>::operator=(utf16_pair inBytse) noexcept
+	{
+		Character.Upper = inBytse.Upper;
+		Character.Lower = inBytse.Lower;
+
+		return *this;
+	}
+
+	UTF_CONSTEXPR UTF_NODISCARD
+		bool utf_char<UtfEncodingType::Utf16>::operator==(utf_char16 Other) const noexcept
+	{
+		return Character == Other.Character;
+	}
+
+	UTF_CONSTEXPR UTF_NODISCARD
+		bool utf_char<UtfEncodingType::Utf16>::operator!=(utf_char16 Other) const noexcept
+	{
+		return Character != Other.Character;
+	}
+
+	UTF_CONSTEXPR UTF_NODISCARD 
+		utf_char8 utf_char<UtfEncodingType::Utf16>::GetAsUtf8() const noexcept
+	{
+		return Utf16PairToUtf8Bytes(Character);
+	}
+
+	UTF_CONSTEXPR UTF_NODISCARD 
+		utf_char16 utf_char<UtfEncodingType::Utf16>::GetAsUtf16() const noexcept
+	{
+		return Character;
+	}
+
+	UTF_CONSTEXPR UTF_NODISCARD 
+		utf_char32 utf_char<UtfEncodingType::Utf16>::GetAsUtf32() const noexcept
+	{
+		return Utf16PairToUtf32(Character);
+	}
+
+	UTF_CONSTEXPR UTF_NODISCARD 
+		utf_char16 utf_char<UtfEncodingType::Utf16>::Get() const noexcept
+	{
+		return Character;
+	}
+
+	UTF_CONSTEXPR UTF_NODISCARD 
+		UtfEncodingType utf_char<UtfEncodingType::Utf16>::GetEncoding() const noexcept
+	{
+		return UtfEncodingType::Utf16;
+	}
+
+	UTF_CONSTEXPR UTF_NODISCARD 
+		uint8_t utf_char<UtfEncodingType::Utf16>::GetByteSize() const noexcept
+	{
+		return GetUtf16CharLenght(Character.Upper);
+	}
+
+
+
+	// utf_char spezialization-implementation for Utf32
+	UTF_CONSTEXPR utf_char<UtfEncodingType::Utf32>::utf_char(utf_cp32_t InChar) noexcept
+		: Character(InChar)
+	{
+	}
+
+	UTF_CONSTEXPR utf_char<UtfEncodingType::Utf32>::utf_char(const utf_cp32_t* SingleCharString) noexcept
+		: Character(*SingleCharString)
+	{
+	}
+
+	UTF_CONSTEXPR utf_char<UtfEncodingType::Utf32>& utf_char<UtfEncodingType::Utf32>::operator=(utf_cp32_t inBytse) noexcept
+	{
+		Character = inBytse;
+		return *this;
+	}
+
+	UTF_CONSTEXPR UTF_NODISCARD
+		bool utf_char<UtfEncodingType::Utf32>::operator==(utf_char32 Other) const noexcept
+	{
+		return Character == Other.Character;
+	}
+
+	UTF_CONSTEXPR UTF_NODISCARD
+		bool utf_char<UtfEncodingType::Utf32>::operator!=(utf_char32 Other) const noexcept
+	{
+		return Character != Other.Character;
+	}
+
+	UTF_CONSTEXPR UTF_NODISCARD
+		utf_char8 utf_char<UtfEncodingType::Utf32>::GetAsUtf8() const noexcept
+	{
+		return Utf32ToUtf8Bytes(Character);
+	}
+
+	UTF_CONSTEXPR UTF_NODISCARD
+		utf_char16 utf_char<UtfEncodingType::Utf32>::GetAsUtf16() const noexcept
+	{
+		return Utf32ToUtf16Pair(Character);
+	}
+
+	UTF_CONSTEXPR UTF_NODISCARD
+		utf_char32 utf_char<UtfEncodingType::Utf32>::GetAsUtf32() const noexcept
+	{
+		return Character;
+	}
+
+	UTF_CONSTEXPR UTF_NODISCARD
+		utf_char32 utf_char<UtfEncodingType::Utf32>::Get() const noexcept
+	{
+		return Character;
+	}
+
+	UTF_CONSTEXPR UTF_NODISCARD
+		UtfEncodingType utf_char<UtfEncodingType::Utf32>::GetEncoding() const noexcept
+	{
+		return UtfEncodingType::Utf32;
+	}
+
+	UTF_CONSTEXPR UTF_NODISCARD
+		uint8_t utf_char<UtfEncodingType::Utf32>::GetByteSize() const noexcept
+	{
+		return 0x4;
+	}
 }
 
 #undef UTF_CONSTEXPR

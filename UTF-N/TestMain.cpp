@@ -38,8 +38,9 @@ int main()
 	std::string Str = reinterpret_cast<const char*>(u8"Hell 里成");
 	std::cout << "\nstr: " << Str << "\n\n";
 
-	utf_char<UtfEncodingType::Utf8> RandomChar;
-	RandomChar.Character = { 20, 120, 33, 00 };
+	constexpr utf_char<UtfEncodingType::Utf8> RandomChar = utf8_bytes{ 20, 120, 33, 00 };
+
+	constexpr auto FirstByte = RandomChar[0];
 
 	auto A = RandomChar.GetAsUtf8();
 
@@ -78,24 +79,24 @@ int main()
 	std::cout << "OrignalChar (Utf32 : 0x1D11E): " << std::hex << +OrignalChar << "\n";
 
 
-	utf8_bytes Utf8Bytes1 = Utf32ToUtf8Bytes(0x41);
-	std::cout << "1. Utf8Bytes = " << +Utf8Bytes1.Codepoints[0] << ", " << +Utf8Bytes1.Codepoints[1] << ", " << +Utf8Bytes1.Codepoints[2] << ", " << +Utf8Bytes1.Codepoints[3] << "\n";
+	utf_char8 Utf8Bytes1 = Utf32ToUtf8Bytes(0x41);
+	std::cout << "1. Utf8Bytes = " << +Utf8Bytes1[0] << ", " << +Utf8Bytes1[1] << ", " << +Utf8Bytes1[2] << ", " << +Utf8Bytes1[3] << "\n";
 	std::cout << "Orig (Utf32 : 0x41): " << +Utf8BytesToUtf32(Utf8Bytes1) << "\n\n";
 
-	utf8_bytes Utf8Bytes2 = Utf32ToUtf8Bytes(0xA9);
-	std::cout << "2. Utf8Bytes = " << +Utf8Bytes2.Codepoints[0] << ", " << +Utf8Bytes2.Codepoints[1] << ", " << +Utf8Bytes2.Codepoints[2] << ", " << +Utf8Bytes2.Codepoints[3] << "\n";
+	utf_char8 Utf8Bytes2 = Utf32ToUtf8Bytes(0xA9);
+	std::cout << "2. Utf8Bytes = " << +Utf8Bytes2[0] << ", " << +Utf8Bytes2[1] << ", " << +Utf8Bytes2[2] << ", " << +Utf8Bytes2[3] << "\n";
 	std::cout << "Orig (Utf32 : 0xA9): " << +Utf8BytesToUtf32(Utf8Bytes2) << "\n\n";
 
-	utf8_bytes Utf8Bytes3 = Utf32ToUtf8Bytes(0x20AC);
-	std::cout << "3. Utf8Bytes = " << +Utf8Bytes3.Codepoints[0] << ", " << +Utf8Bytes3.Codepoints[1] << ", " << +Utf8Bytes3.Codepoints[2] << ", " << +Utf8Bytes3.Codepoints[3] << "\n";
+	utf_char8 Utf8Bytes3 = Utf32ToUtf8Bytes(0x20AC);
+	std::cout << "3. Utf8Bytes = " << +Utf8Bytes3[0] << ", " << +Utf8Bytes3[1] << ", " << +Utf8Bytes3[2] << ", " << +Utf8Bytes3[3] << "\n";
 	std::cout << "Orig (Utf32 : 0x20AC): " << +Utf8BytesToUtf32(Utf8Bytes3) << "\n\n";
 
-	utf8_bytes Utf8Bytes4 = Utf32ToUtf8Bytes(0x1F600);
-	std::cout << "4. Utf8Bytes = " << +Utf8Bytes4.Codepoints[0] << ", " << +Utf8Bytes4.Codepoints[1] << ", " << +Utf8Bytes4.Codepoints[2] << ", " << +Utf8Bytes4.Codepoints[3] << "\n";
+	utf_char8 Utf8Bytes4 = Utf32ToUtf8Bytes(0x1F600);
+	std::cout << "4. Utf8Bytes = " << +Utf8Bytes4[0] << ", " << +Utf8Bytes4[1] << ", " << +Utf8Bytes4[2] << ", " << +Utf8Bytes4[3] << "\n";
 	std::cout << "Orig (Utf32 : 0x1F600): " << +Utf8BytesToUtf32(Utf8Bytes4) << "\n\n";
 
-	utf8_bytes Utf8Bytes5 = Utf32ToUtf8Bytes(0x110000);
-	std::cout << "E. Utf8Bytes = " << +Utf8Bytes5.Codepoints[0] << ", " << +Utf8Bytes5.Codepoints[1] << ", " << +Utf8Bytes5.Codepoints[2] << ", " << +Utf8Bytes5.Codepoints[3] << "\n";
+	utf_char8 Utf8Bytes5 = Utf32ToUtf8Bytes(0x110000);
+	std::cout << "E. Utf8Bytes = " << +Utf8Bytes5[0] << ", " << +Utf8Bytes5[1] << ", " << +Utf8Bytes5[2] << ", " << +Utf8Bytes5[3] << "\n";
 	std::cout << "Orig (Utf32 : 0x110000): " << +Utf8BytesToUtf32(Utf8Bytes5) << "\n\n";
 
 }
