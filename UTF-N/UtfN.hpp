@@ -129,7 +129,7 @@ namespace UtfN
 			*
 			* 10111111 -> follow up byte
 			*/
-			UTF_CONSTEXPR utf_char32_t Max1ByteValue = (1 << 7) - 1; // 7  bits available
+			UTF_CONSTEXPR utf_char32_t Max1ByteValue = (1 <<  7) - 1; //  7 bits available
 			UTF_CONSTEXPR utf_char32_t Max2ByteValue = (1 << 11) - 1; // 11 bits available
 			UTF_CONSTEXPR utf_char32_t Max3ByteValue = (1 << 16) - 1; // 16 bits available
 			UTF_CONSTEXPR utf_char32_t Max4ByteValue = 0x10FFFF;      // 21 bits available, but not fully used
@@ -151,29 +151,37 @@ namespace UtfN
 				return (Codepoint & 0b1100'0000) == FollowupByteMask;
 			}
 
-			// Tests if a utf8 value is a valid Unicode character
+			template<int ByteSize>
 			UTF_CONSTEXPR UTF_NODISCARD
-				bool IsValidUnicodeChar(const utf_char8_t FirstCp, const utf_char8_t SecondCp, const utf_char8_t ThirdCp, const utf_char8_t FourthCp) noexcept
+				bool IsValidUtf8Sequence(const utf_char8_t FirstCp, const utf_char8_t SecondCp, const utf_char8_t ThirdCp, const utf_char8_t FourthCp) noexcept
 			{
-				// A single codepoint is always valid
-				if ((FirstCp & 0b1000'0000) == 0)
-					return true;
-
-				// If this is a multibyte character check all of the folloup chars to be valid
-				if (Utils::IsFlagSet(FirstCp, Utf8::FourByteFlag))
+				switch (ByteSize)
 				{
-					return IsValidFollowupCodepoint(SecondCp) && IsValidFollowupCodepoint(ThirdCp) && IsValidFollowupCodepoint(FourthCp);
-				}
-				else if (Utils::IsFlagSet(FirstCp, Utf8::ThreeByteFlag))
+				case 1:
 				{
-					return IsValidFollowupCodepoint(SecondCp) && IsValidFollowupCodepoint(ThirdCp);
+					return SecondCp == 0 && ThirdCp == 0 && FourthCp == 0;
 				}
-				else if (Utils::IsFlagSet(FirstCp, Utf8::TwoByteFlag))
+				case 4:
 				{
-					return IsValidFollowupCodepoint(SecondCp);
+					const bool bIsOverlongEncoding = Utils::GetWithClearedFlag(FirstCp, ~Utf8::TwoByteFlag) != 0 && SecondCp == Utf8::FollowupByteMask;
+					return !bIsOverlongEncoding && IsValidFollowupCodepoint(SecondCp) && IsValidFollowupCodepoint(ThirdCp) && IsValidFollowupCodepoint(FourthCp);
 				}
-
-				return false;
+				case 3:
+				{
+					const bool bIsOverlongEncoding = Utils::GetWithClearedFlag(FirstCp, ~Utf8::ThreeByteFlag) != 0 && SecondCp == Utf8::FollowupByteMask;
+					return !bIsOverlongEncoding && IsValidFollowupCodepoint(SecondCp) && IsValidFollowupCodepoint(ThirdCp) && FourthCp == 0;
+				}
+				case 2:
+				{
+					const bool bIsOverlongEncoding = Utils::GetWithClearedFlag(FirstCp, ~Utf8::FourByteFlag) != 0 && SecondCp == Utf8::FollowupByteMask;
+					return !bIsOverlongEncoding && IsValidFollowupCodepoint(SecondCp) && ThirdCp == 0 && FourthCp == 0;
+				}
+				default:
+				{
+					return false;
+					break;
+				}
+				}
 			}
 		}
 
@@ -211,7 +219,7 @@ namespace UtfN
 				const bool IsValidLowSurrogate = IsLowSurrogate(LowerCodepoint);
 
 				// Either both are valid suorrogates, or none are
-				return (IsValidHighSurrogate && IsValidLowSurrogate) || (!IsValidHighSurrogate && !IsValidLowSurrogate);
+				return (IsValidHighSurrogate && IsValidLowSurrogate) || (!IsValidHighSurrogate && !IsValidLowSurrogate) && !IsHighSurrogate(LowerCodepoint) && !IsLowSurrogate(UpperCodepoint);
 			}
 		}
 
@@ -417,12 +425,12 @@ namespace UtfN
 		using namespace UtfImpl;
 		using namespace UtfImpl::Utf8;
 
-		if (!Utf8::IsValidUnicodeChar(Character.Codepoints[0], Character.Codepoints[1], Character.Codepoints[2], Character.Codepoints[3]))
-			return utf_char32_t{ 0 };
-
 		/* No flag for any other byte-count is set */
 		if ((Character.Codepoints[0] & 0b1000'0000) == 0)
 		{
+			if (!Utf8::IsValidUtf8Sequence<1>(Character.Codepoints[0], Character.Codepoints[1], Character.Codepoints[2], Character.Codepoints[3])) // Verifies encoding
+				return utf_char32_t{ 0 };
+
 			return Character.Codepoints[0];
 		}
 		else if (Utils::IsFlagSet(Character.Codepoints[0], FourByteFlag))
@@ -432,6 +440,10 @@ namespace UtfN
 			RetChar |= Utils::GetWithClearedFlag(Character.Codepoints[1], FollowupByteMask) << (NumDataBitsInFollowupByte * 2); // Clear the FollowupByteMask and move the bits to the right position
 			RetChar |= Utils::GetWithClearedFlag(Character.Codepoints[0], FourByteFlag) << (NumDataBitsInFollowupByte * 3); // Clear the FourByteFlag and move the bits to the right position
 
+			if (!Utf8::IsValidUtf8Sequence<4>(Character.Codepoints[0], Character.Codepoints[1], Character.Codepoints[2], Character.Codepoints[3])  // Verifies encoding
+				|| !Utf32::IsValidUnicodeChar(RetChar)) // Verifies ranges
+				return utf_char32_t{ 0 };
+
 			return RetChar;
 		}
 		else if (Utils::IsFlagSet(Character.Codepoints[0], ThreeByteFlag))
@@ -440,12 +452,20 @@ namespace UtfN
 			RetChar |= Utils::GetWithClearedFlag(Character.Codepoints[1], FollowupByteMask) << (NumDataBitsInFollowupByte * 1); // Clear the FollowupByteMask and move the bits to the right position
 			RetChar |= Utils::GetWithClearedFlag(Character.Codepoints[0], ThreeByteFlag) << (NumDataBitsInFollowupByte * 2); // Clear the ThreeByteFlag and move the bits to the right position
 
+			if (!Utf8::IsValidUtf8Sequence<3>(Character.Codepoints[0], Character.Codepoints[1], Character.Codepoints[2], Character.Codepoints[3]) // Verifies encoding
+				|| !Utf32::IsValidUnicodeChar(RetChar)) // Verifies ranges
+				return utf_char32_t{ 0 };
+
 			return RetChar;
 		}
 		else if (Utils::IsFlagSet(Character.Codepoints[0], TwoByteFlag))
 		{
 			utf_char32_t RetChar = Utils::GetWithClearedFlag(Character.Codepoints[1], FollowupByteMask); // Clear the FollowupByteMask and move the bits to the right position
 			RetChar |= Utils::GetWithClearedFlag(Character.Codepoints[0], TwoByteFlag) << NumDataBitsInFollowupByte; // Clear the TwoByteFlag and move the bits to the right position
+
+			if (!Utf8::IsValidUtf8Sequence<2>(Character.Codepoints[0], Character.Codepoints[1], Character.Codepoints[2], Character.Codepoints[3]) // Verifies encoding
+				|| !Utf32::IsValidUnicodeChar(RetChar)) // Verifies ranges
+				return utf_char32_t{ 0 };
 
 			return RetChar;
 		}
