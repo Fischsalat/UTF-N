@@ -74,7 +74,7 @@ int main()
 	std::cout << "Pair.Upper: " << std::hex << static_cast<unsigned short>(Pair.Upper) << "\n";
 	std::cout << "Pair.Lower: " << std::hex << static_cast<unsigned short>(Pair.Lower) << "\n";
 
-	utf_char32_t OrignalChar = Utf16PairToUtf32(Pair);
+	utf_cp32_t OrignalChar = Utf16PairToUtf32(Pair);
 	std::cout << "OrignalChar (Utf32 : 0x1D11E): " << std::hex << +OrignalChar << "\n";
 
 

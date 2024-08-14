@@ -24,7 +24,7 @@ namespace UtfNTests
 	{
 		namespace Utf8
 		{
-			template<utf_char8_t FirstCp, utf_char8_t SecondCp, utf_char8_t ThirdCp, utf_char8_t FourthCp>
+			template<utf_cp8_t FirstCp, utf_cp8_t SecondCp, utf_cp8_t ThirdCp, utf_cp8_t FourthCp>
 			constexpr bool HelperUtf8IsValidUnicodeChar()
 			{
 				return UtfImpl::Utf8::IsValidUtf8Sequence<GetUtf8CharLenght(FirstCp)>(FirstCp, SecondCp, ThirdCp, FourthCp);
@@ -94,11 +94,11 @@ namespace UtfNTests
 	namespace Conversions
 	{
 		/*
-		utf16_pair Utf32ToUtf16Pair(utf_char32_t);
-		utf_char32_t Utf16PairToUtf32(utf16_pair);
+		utf16_pair Utf32ToUtf16Pair(utf_cp32_t);
+		utf_cp32_t Utf16PairToUtf32(utf16_pair);
 
-		utf8_bytes Utf32ToUtf8Bytes(utf_char32_t);
-		utf_char32_t Utf8BytesToUtf32(utf8_bytes);
+		utf8_bytes Utf32ToUtf8Bytes(utf_cp32_t);
+		utf_cp32_t Utf8BytesToUtf32(utf8_bytes);
 
 		utf8_bytes Utf16PairToUtf8Bytes(utf16_pair);
 		utf16_pair Utf8BytesToUtf16(utf8_bytes);
@@ -294,23 +294,23 @@ namespace UtfNTests
 		constexpr void TestParseUtf32CharFromStr()
 		{
 #if defined(UTFN_TESTS) && defined(UTFN_PARSING_TESTS)
-			static_assert(UtfN::ParseUtf32CharFromStr(U"\0") == utf_char32_t{ 0x0000 }, "ParseUtf8CharFromStr failed to parse null-terminator.");
+			static_assert(UtfN::ParseUtf32CharFromStr(U"\0") == utf_cp32_t{ 0x0000 }, "ParseUtf8CharFromStr failed to parse null-terminator.");
 
-			static_assert(UtfN::ParseUtf32CharFromStr(U"A") == utf_char32_t{ 0x00000041 }, "ParseUtf16CharFromStr failed to parse 1-byte character 1.");
-			static_assert(UtfN::ParseUtf32CharFromStr(U"a") == utf_char32_t{ 0x00000061 }, "ParseUtf16CharFromStr failed to parse 1-byte character 2.");
-			static_assert(UtfN::ParseUtf32CharFromStr(U"!") == utf_char32_t{ 0x00000021 }, "ParseUtf16CharFromStr failed to parse 1-byte character 3.");
+			static_assert(UtfN::ParseUtf32CharFromStr(U"A") == utf_cp32_t{ 0x00000041 }, "ParseUtf16CharFromStr failed to parse 1-byte character 1.");
+			static_assert(UtfN::ParseUtf32CharFromStr(U"a") == utf_cp32_t{ 0x00000061 }, "ParseUtf16CharFromStr failed to parse 1-byte character 2.");
+			static_assert(UtfN::ParseUtf32CharFromStr(U"!") == utf_cp32_t{ 0x00000021 }, "ParseUtf16CharFromStr failed to parse 1-byte character 3.");
 
-			static_assert(UtfN::ParseUtf32CharFromStr(U"é") == utf_char32_t{ 0x000000E9 }, "ParseUtf16CharFromStr failed to parse 2-byte character 1.");
-			static_assert(UtfN::ParseUtf32CharFromStr(U"ñ") == utf_char32_t{ 0x000000F1 }, "ParseUtf16CharFromStr failed to parse 2-byte character 2.");
-			static_assert(UtfN::ParseUtf32CharFromStr(U"λ") == utf_char32_t{ 0x000003BB }, "ParseUtf16CharFromStr failed to parse 2-byte character 3.");
+			static_assert(UtfN::ParseUtf32CharFromStr(U"é") == utf_cp32_t{ 0x000000E9 }, "ParseUtf16CharFromStr failed to parse 2-byte character 1.");
+			static_assert(UtfN::ParseUtf32CharFromStr(U"ñ") == utf_cp32_t{ 0x000000F1 }, "ParseUtf16CharFromStr failed to parse 2-byte character 2.");
+			static_assert(UtfN::ParseUtf32CharFromStr(U"λ") == utf_cp32_t{ 0x000003BB }, "ParseUtf16CharFromStr failed to parse 2-byte character 3.");
 
-			static_assert(UtfN::ParseUtf32CharFromStr(U"अ") == utf_char32_t{ 0x00000905 }, "ParseUtf16CharFromStr failed to parse 3-byte character 1.");
-			static_assert(UtfN::ParseUtf32CharFromStr(U"中") == utf_char32_t{ 0x00004E2D }, "ParseUtf16CharFromStr failed to parse 3-byte character 2.");
-			static_assert(UtfN::ParseUtf32CharFromStr(U"₤") == utf_char32_t{ 0x000020A4 }, "ParseUtf16CharFromStr failed to parse 3-byte character 3.");
+			static_assert(UtfN::ParseUtf32CharFromStr(U"अ") == utf_cp32_t{ 0x00000905 }, "ParseUtf16CharFromStr failed to parse 3-byte character 1.");
+			static_assert(UtfN::ParseUtf32CharFromStr(U"中") == utf_cp32_t{ 0x00004E2D }, "ParseUtf16CharFromStr failed to parse 3-byte character 2.");
+			static_assert(UtfN::ParseUtf32CharFromStr(U"₤") == utf_cp32_t{ 0x000020A4 }, "ParseUtf16CharFromStr failed to parse 3-byte character 3.");
 
-			static_assert(UtfN::ParseUtf32CharFromStr(U"😀") == utf_char32_t{ 0x0001F600 }, "ParseUtf16CharFromStr failed to parse 4-byte character 1.");
-			static_assert(UtfN::ParseUtf32CharFromStr(U"🀄") == utf_char32_t{ 0x0001F004 }, "ParseUtf16CharFromStr failed to parse 4-byte character 2.");
-			static_assert(UtfN::ParseUtf32CharFromStr(U"𐍈") == utf_char32_t{ 0x00010348 }, "ParseUtf16CharFromStr failed to parse 4-byte character 3.");
+			static_assert(UtfN::ParseUtf32CharFromStr(U"😀") == utf_cp32_t{ 0x0001F600 }, "ParseUtf16CharFromStr failed to parse 4-byte character 1.");
+			static_assert(UtfN::ParseUtf32CharFromStr(U"🀄") == utf_cp32_t{ 0x0001F004 }, "ParseUtf16CharFromStr failed to parse 4-byte character 2.");
+			static_assert(UtfN::ParseUtf32CharFromStr(U"𐍈") == utf_cp32_t{ 0x00010348 }, "ParseUtf16CharFromStr failed to parse 4-byte character 3.");
 #endif // UTFN_TESTS && UTFN_PARSING_TESTS
 		}
 	}
