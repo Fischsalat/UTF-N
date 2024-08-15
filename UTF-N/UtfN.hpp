@@ -12,6 +12,7 @@
 #endif
 
 #include <string>
+#include <limits>
 #include <cstdint>
 #include <type_traits>
 
@@ -35,6 +36,7 @@
 #pragma warning (disable: 4820) // C4820 "'n' bytes padding added after data member '...'"
 #pragma warning(disable : 4127) // C4127 conditional expression is constant
 #pragma warning(disable : 5045) // C5045 Compiler will insert Spectre mitigation for memory load if /Qspectre switch specified
+#pragma warning(disable : 5246) // C5246 'ArrayVariable' the initialization of a subobject should be wrapped in braces
 #elif (defined(__CLANG__) || defined(__GNUC__))
 #endif // Warnings
 
@@ -226,7 +228,7 @@ namespace UtfN
 				const bool IsValidLowSurrogate = IsLowSurrogate(LowerCodepoint);
 
 				// Either both are valid suorrogates, or none are
-				return (IsValidHighSurrogate && IsValidLowSurrogate) || (!IsValidHighSurrogate && !IsValidLowSurrogate) && !IsHighSurrogate(LowerCodepoint) && !IsLowSurrogate(UpperCodepoint);
+				return (IsValidHighSurrogate && IsValidLowSurrogate) || (!IsValidHighSurrogate && !IsValidLowSurrogate);
 			}
 		}
 
