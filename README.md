@@ -1,11 +1,46 @@
 A simple C++ lib for converting between Utf8, Utf16 and Utf32. Not yet complete.
 
 Currently implemented functionality:
+### Struct
+```c++
+// Common interface
+template<UtfEncodingType Encoding>
+struct utf_char
+{
+    CharType Character = { 0 };
+
+public:
+    utf_char(const CharType* SingleCharString);
+
+public:
+    utf_char& operator=(CharType inBytse);
+
+public:
+    bool operator==(utf_char Other) const;
+    bool operator!=(utf_char Other) const;
+
+public:
+    utf_char8 GetAsUtf8() const;
+    utf_char16 GetAsUtf16() const;
+    utf_char32 GetAsUtf32() const;
+
+    utf_char Get() const;
+
+    UtfEncodingType GetEncoding() const;
+    uint8_t GetByteSize() const;
+};
+
+typedef utf_char<UtfEncodingType::Utf8> utf_char8;
+typedef utf_char<UtfEncodingType::Utf16> utf_char16;
+typedef utf_char<UtfEncodingType::Utf32> utf_char32;
+```
 ### Helper functions
 ```c++
-int GetUtf8CharLenght(const utf_char8_t);
-int GetUtf16CharLenght(const utf_char16_t);
-
+uint8_t GetUtf8CharLenght(const utf_char8_t);
+uint8_t GetUtf16CharLenght(const utf_char16_t);
+```
+### Conversions
+```c++
 // Single-character conversions
 utf16_pair Utf32ToUtf16Pair(const utf_char32_t);
 utf_char32_t Utf16PairToUtf32(const utf16_pair);
