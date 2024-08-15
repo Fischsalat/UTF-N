@@ -3,8 +3,10 @@
 
 // Lower warning-level and turn off certain warnings for STL compilation
 #if (defined(_MSC_VER))
-#pragma warning (push, 2) // Push warnings and set warn-level to 3
+#pragma warning (push, 2) // Push warnings and set warn-level to 2
 #pragma warning(disable : 4365) // signed/unsigned mismatch
+#pragma warning(disable : 4710) // 'FunctionName' was not inlined
+#pragma warning(disable : 4711) // 'FunctionName' selected for automatic inline expansion
 #elif (defined(__CLANG__) || defined(__GNUC__))
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-compare"
@@ -53,9 +55,9 @@ int main()
 	std::cout << "\n" << std::endl;
 
 
-	const char Array[] = u8"Hello 里成里成里成 word!";
+	const char* Array = reinterpret_cast<const char*>(u8"Hello 里成里成里成 word!");
 
-	utf8_iterator<const char*> My2ndIterator(Array, Array + sizeof(Array));
+	utf8_iterator<const char*> My2ndIterator(Array, Array + sizeof(u8"Hello 里成里成里成 word!"));
 
 	for (utf8_bytes Char : My2ndIterator)
 	{
@@ -70,13 +72,21 @@ int main()
 	}
 
 
-	utf16_pair Pair = Utf32ToUtf16Pair(0x1D11E);
+	constexpr utf_char16 Pair = Utf32ToUtf16Pair(0x1D11E);
 
-	std::cout << "Pair.Upper: " << std::hex << static_cast<unsigned short>(Pair.Upper) << "\n";
-	std::cout << "Pair.Lower: " << std::hex << static_cast<unsigned short>(Pair.Lower) << "\n";
+	constexpr auto var1 = Pair.GetAsUtf16();
+	constexpr auto var2 = Pair.GetAsUtf8();
+	constexpr auto var3 = Pair.GetAsUtf32();
 
-	utf_cp32_t OrignalChar = Utf16PairToUtf32(Pair);
-	std::cout << "OrignalChar (Utf32 : 0x1D11E): " << std::hex << +OrignalChar << "\n";
+	(void)var1;
+	(void)var2;
+	(void)var3;
+
+	std::cout << "Pair.Upper: " << std::hex << static_cast<unsigned short>(Pair.Char.Upper) << "\n";
+	std::cout << "Pair.Lower: " << std::hex << static_cast<unsigned short>(Pair.Char.Lower) << "\n";
+
+	utf_char32 OrignalChar = Utf16PairToUtf32(Pair);
+	std::cout << "OrignalChar (Utf32 : 0x1D11E): " << std::hex << +OrignalChar.Char << "\n";
 
 
 	utf_char8 Utf8Bytes1 = Utf32ToUtf8Bytes(0x41);

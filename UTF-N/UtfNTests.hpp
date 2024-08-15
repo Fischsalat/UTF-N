@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "UtfN.hpp"
 
-//#define UTFN_CONVERSION_TESTS
+#define UTFN_CONVERSION_TESTS
 #define UTFN_PARSING_TESTS
 
 #define UTFN_INTERNALS_TESTS
@@ -25,7 +25,7 @@ namespace UtfNTests
 		namespace Utf8
 		{
 			template<utf_cp8_t FirstCp, utf_cp8_t SecondCp, utf_cp8_t ThirdCp, utf_cp8_t FourthCp>
-			constexpr bool HelperUtf8IsValidUnicodeChar()
+			constexpr bool HelperUtf8IsValidUtf8Sequence()
 			{
 				return UtfImpl::Utf8::IsValidUtf8Sequence<GetUtf8CharLenght(FirstCp)>(FirstCp, SecondCp, ThirdCp, FourthCp);
 			}
@@ -34,20 +34,20 @@ namespace UtfNTests
 			{
 #if defined(UTFN_TESTS) && defined(UTFN_INTERNALS_TESTS)
 				// Overlong encoding
-				static_assert(!HelperUtf8IsValidUnicodeChar<0xF0, 0x80, 0x80, 0xA4>(), "IsValidUtf8Sequence returned { true } for an invalid overlong encoding, should be { false }.");
-				static_assert(!HelperUtf8IsValidUnicodeChar<0xC0, 0x80, 0x00, 0x00>(), "IsValidUtf8Sequence returned { true } for an invalid overlong encoding, should be { false }.");
-				static_assert(!HelperUtf8IsValidUnicodeChar<0xE0, 0x80, 0xBF, 0x00>(), "IsValidUtf8Sequence returned { true } for an invalid overlong encoding, should be { false }.");
+				static_assert(!HelperUtf8IsValidUtf8Sequence<0xF0, 0x80, 0x80, 0xA4>(), "IsValidUtf8Sequence returned { true } for an invalid overlong encoding, should be { false }.");
+				static_assert(!HelperUtf8IsValidUtf8Sequence<0xC0, 0x80, 0x00, 0x00>(), "IsValidUtf8Sequence returned { true } for an invalid overlong encoding, should be { false }.");
+				static_assert(!HelperUtf8IsValidUtf8Sequence<0xE0, 0x80, 0xBF, 0x00>(), "IsValidUtf8Sequence returned { true } for an invalid overlong encoding, should be { false }.");
 
 
 				// Invalid 3-byte UTF-8 sequence with invalid byters
-				static_assert(!HelperUtf8IsValidUnicodeChar<0xE2, 0x28, 0xAC, 0x00>(), "IsValidUtf8Sequence returned { true } for an invalid UTF-8 sequence with bad second byte, should be { false }.");
-				static_assert(!HelperUtf8IsValidUnicodeChar<0xC2, 0x7F, 0x00, 0x00>(), "IsValidUtf8Sequence returned { true } for an invalid UTF-8 sequence with bad continuation byte, should be { false }.");
-				static_assert(!HelperUtf8IsValidUnicodeChar<0xF0, 0x9F, 0x20, 0x80>(), "IsValidUtf8Sequence returned { true } for an invalid UTF-8 sequence with bad third byte, should be { false }.");
+				static_assert(!HelperUtf8IsValidUtf8Sequence<0xE2, 0x28, 0xAC, 0x00>(), "IsValidUtf8Sequence returned { true } for an invalid UTF-8 sequence with bad second byte, should be { false }.");
+				static_assert(!HelperUtf8IsValidUtf8Sequence<0xC2, 0x7F, 0x00, 0x00>(), "IsValidUtf8Sequence returned { true } for an invalid UTF-8 sequence with bad continuation byte, should be { false }.");
+				static_assert(!HelperUtf8IsValidUtf8Sequence<0xF0, 0x9F, 0x20, 0x80>(), "IsValidUtf8Sequence returned { true } for an invalid UTF-8 sequence with bad third byte, should be { false }.");
 				
 				// Standalone continuation byte 0x80 / Invalid contination byte in multibyte sequence
-				static_assert(!HelperUtf8IsValidUnicodeChar<0x80, 0x00, 0x00, 0x00>(), "IsValidUtf8Sequence returned { true } for a standalone continuation byte, should be { false }.");
-				static_assert(!HelperUtf8IsValidUnicodeChar<0xBF, 0x00, 0x00, 0x00>(), "IsValidUtf8Sequence returned { true } for a standalone continuation byte, should be { false }.");
-				static_assert(!HelperUtf8IsValidUnicodeChar<0x80, 0xBF, 0x00, 0x00>(), "IsValidUtf8Sequence returned { true } for an invalid 2-byte sequence starting with a continuation byte, should be { false }.");
+				static_assert(!HelperUtf8IsValidUtf8Sequence<0x80, 0x00, 0x00, 0x00>(), "IsValidUtf8Sequence returned { true } for a standalone continuation byte, should be { false }.");
+				static_assert(!HelperUtf8IsValidUtf8Sequence<0xBF, 0x00, 0x00, 0x00>(), "IsValidUtf8Sequence returned { true } for a standalone continuation byte, should be { false }.");
+				static_assert(!HelperUtf8IsValidUtf8Sequence<0x80, 0xBF, 0x00, 0x00>(), "IsValidUtf8Sequence returned { true } for an invalid 2-byte sequence starting with a continuation byte, should be { false }.");
 
 				// Out of range codepoints
 				// Not covered by the encoding-check
@@ -128,7 +128,7 @@ namespace UtfNTests
 			static_assert(Utf32ToUtf16Pair(0x00010348) == utf16_pair{ 0xDF48, 0xD800 }, "Utf32ToUtf16Pair failed for 4-byte character { 0x00010348 }.");
 
 			// UTF-32 to UTF-16 (null terminator)
-			static_assert(Utf32ToUtf16Pair(0x00000000) == utf16_pair{ 0x0000, 0x0000 }, "Utf32ToUtf16Pair failed for null terminator.");
+			static_assert(Utf32ToUtf16Pair(utf_cp32_t{ 0x00000000 }) == utf16_pair{ 0x0000, 0x0000 }, "Utf32ToUtf16Pair failed for null terminator.");
 
 			// UTF-32 to UTF-16 (invalid characters)
 			static_assert(Utf32ToUtf16Pair(0x00110000) == utf16_pair{ 0x0000, 0x0000 }, "Utf32ToUtf16Pair failed for invalid character (out of range).");
@@ -141,35 +141,35 @@ namespace UtfNTests
 		{
 #if defined(UTFN_TESTS) && defined(UTFN_CONVERSION_TESTS)
 			// UTF-16 to UTF-32 (1-byte characters)
-			static_assert(Utf16PairToUtf32({ 0x0041, 0x0000 }) == 0x00000041, "Utf16PairToUtf32 failed for 1-byte character { 0x00000041 }.");
-			static_assert(Utf16PairToUtf32({ 0x0061, 0x0000 }) == 0x00000061, "Utf16PairToUtf32 failed for 1-byte character { 0x00000061 }.");
-			static_assert(Utf16PairToUtf32({ 0x0021, 0x0000 }) == 0x00000021, "Utf16PairToUtf32 failed for 1-byte character { 0x00000021 }.");
+			static_assert(Utf16PairToUtf32(utf16_pair{ 0x0041, 0x0000 }) == utf_cp32_t{ 0x00000041 }, "Utf16PairToUtf32 failed for 1-byte character { 0x00000041 }.");
+			static_assert(Utf16PairToUtf32(utf16_pair{ 0x0061, 0x0000 }) == utf_cp32_t{ 0x00000061 }, "Utf16PairToUtf32 failed for 1-byte character { 0x00000061 }.");
+			static_assert(Utf16PairToUtf32(utf16_pair{ 0x0021, 0x0000 }) == utf_cp32_t{ 0x00000021 }, "Utf16PairToUtf32 failed for 1-byte character { 0x00000021 }.");
 
 			// UTF-16 to UTF-32 (2-byte characters)
-			static_assert(Utf16PairToUtf32({ 0x00E9, 0x0000 }) == 0x000000E9, "Utf16PairToUtf32 failed for 2-byte character { 0x000000E9 }.");
-			static_assert(Utf16PairToUtf32({ 0x00F1, 0x0000 }) == 0x000000F1, "Utf16PairToUtf32 failed for 2-byte character { 0x000000F1 }.");
-			static_assert(Utf16PairToUtf32({ 0x03BB, 0x0000 }) == 0x000003BB, "Utf16PairToUtf32 failed for 2-byte character { 0x000003BB }.");
+			static_assert(Utf16PairToUtf32(utf16_pair{ 0x00E9, 0x0000 }) == utf_cp32_t{ 0x000000E9 }, "Utf16PairToUtf32 failed for 2-byte character { 0x000000E9 }.");
+			static_assert(Utf16PairToUtf32(utf16_pair{ 0x00F1, 0x0000 }) == utf_cp32_t{ 0x000000F1 }, "Utf16PairToUtf32 failed for 2-byte character { 0x000000F1 }.");
+			static_assert(Utf16PairToUtf32(utf16_pair{ 0x03BB, 0x0000 }) == utf_cp32_t{ 0x000003BB }, "Utf16PairToUtf32 failed for 2-byte character { 0x000003BB }.");
 
 			// UTF-16 to UTF-32 (3-byte characters)
-			static_assert(Utf16PairToUtf32({ 0x0905, 0x0000 }) == 0x00000905, "Utf16PairToUtf32 failed for 3-byte character { 0x00000905 }.");
-			static_assert(Utf16PairToUtf32({ 0x4E2D, 0x0000 }) == 0x00004E2D, "Utf16PairToUtf32 failed for 3-byte character { 0x00004E2D }.");
-			static_assert(Utf16PairToUtf32({ 0x20A4, 0x0000 }) == 0x000020A4, "Utf16PairToUtf32 failed for 3-byte character { 0x000020A4 }.");
+			static_assert(Utf16PairToUtf32(utf16_pair{ 0x0905, 0x0000 }) == utf_cp32_t{ 0x00000905 }, "Utf16PairToUtf32 failed for 3-byte character { 0x00000905 }.");
+			static_assert(Utf16PairToUtf32(utf16_pair{ 0x4E2D, 0x0000 }) == utf_cp32_t{ 0x00004E2D }, "Utf16PairToUtf32 failed for 3-byte character { 0x00004E2D }.");
+			static_assert(Utf16PairToUtf32(utf16_pair{ 0x20A4, 0x0000 }) == utf_cp32_t{ 0x000020A4 }, "Utf16PairToUtf32 failed for 3-byte character { 0x000020A4 }.");
 
 			// UTF-16 to UTF-32 (4-byte characters)
-			static_assert(Utf16PairToUtf32({0xDE00, 0xD83D }) == 0x0001F600, "Utf16PairToUtf32 failed for 4-byte character { 0x0001F600 }.");
-			static_assert(Utf16PairToUtf32({ 0xDC04, 0xD83C }) == 0x0001F004, "Utf16PairToUtf32 failed for 4-byte character { 0x0001F004 }.");
-			static_assert(Utf16PairToUtf32({ 0xDF48, 0xD800 }) == 0x00010348, "Utf16PairToUtf32 failed for 4-byte character { 0x00010348 }.");
+			static_assert(Utf16PairToUtf32(utf16_pair{ 0xDE00, 0xD83D }) == utf_cp32_t{ 0x0001F600 }, "Utf16PairToUtf32 failed for 4-byte character { 0x0001F600 }.");
+			static_assert(Utf16PairToUtf32(utf16_pair{ 0xDC04, 0xD83C }) == utf_cp32_t{ 0x0001F004 }, "Utf16PairToUtf32 failed for 4-byte character { 0x0001F004 }.");
+			static_assert(Utf16PairToUtf32(utf16_pair{ 0xDF48, 0xD800 }) == utf_cp32_t{ 0x00010348 }, "Utf16PairToUtf32 failed for 4-byte character { 0x00010348 }.");
 
 			// UTF-16 to UTF-32 (null terminator)
-			static_assert(Utf16PairToUtf32({ 0x0000, 0x0000 }) == 0x00000000, "Utf16PairToUtf32 failed for null terminator.");
+			static_assert(Utf16PairToUtf32(utf16_pair{ 0x0000, 0x0000 }) == utf_cp32_t{ 0x00000000 }, "Utf16PairToUtf32 failed for null terminator.");
 
-			static_assert(Utf16PairToUtf32({ 0xD800, 0x0000 }) == 0x00000000, "Utf16PairToUtf32 failed for invalid character (lone surrogate).");
-			static_assert(Utf16PairToUtf32({ 0xD83D, 0x0000 }) == 0x00000000, "Utf16PairToUtf32 failed for invalid character (half of a surrogate pair).");
-			static_assert(Utf16PairToUtf32({ 0xD800, 0xD800 }) == 0x00000000, "Utf16PairToUtf32 failed for invalid character (invalid surrogate pair).");
+			static_assert(Utf16PairToUtf32(utf16_pair{ 0xD800, 0x0000 }) == utf_cp32_t{ 0x00000000 }, "Utf16PairToUtf32 failed for invalid character (lone surrogate).");
+			static_assert(Utf16PairToUtf32(utf16_pair{ 0xD83D, 0x0000 }) == utf_cp32_t{ 0x00000000 }, "Utf16PairToUtf32 failed for invalid character (half of a surrogate pair).");
+			static_assert(Utf16PairToUtf32(utf16_pair{ 0xD800, 0xD800 }) == utf_cp32_t{ 0x00000000 }, "Utf16PairToUtf32 failed for invalid character (invalid surrogate pair).");
 
-			static_assert(Utf16PairToUtf32({ 0x0000, 0xD800 }) == 0x00000000, "Utf16PairToUtf32 failed for invalid character (lone surrogate).");
-			static_assert(Utf16PairToUtf32({ 0x0000, 0xD83D }) == 0x00000000, "Utf16PairToUtf32 failed for invalid character (half of a surrogate pair).");
-			static_assert(Utf16PairToUtf32({ 0xD800, 0xD800 }) == 0x00000000, "Utf16PairToUtf32 failed for invalid character (invalid surrogate pair).");
+			static_assert(Utf16PairToUtf32(utf16_pair{ 0x0000, 0xD800 }) == utf_cp32_t{ 0x00000000 }, "Utf16PairToUtf32 failed for invalid character (lone surrogate).");
+			static_assert(Utf16PairToUtf32(utf16_pair{ 0x0000, 0xD83D }) == utf_cp32_t{ 0x00000000 }, "Utf16PairToUtf32 failed for invalid character (half of a surrogate pair).");
+			static_assert(Utf16PairToUtf32(utf16_pair{ 0xD800, 0xD800 }) == utf_cp32_t{ 0x00000000 }, "Utf16PairToUtf32 failed for invalid character (invalid surrogate pair).");
 #endif // UTFN_TESTS && UTFN_CONVERSION_TESTS
 		}
 
@@ -177,32 +177,32 @@ namespace UtfNTests
 		{
 #if defined(UTFN_TESTS) && defined(UTFN_CONVERSION_TESTS)
 			// UTF-32 to UTF-8 (1-byte characters)
-			static_assert(Utf32ToUtf8Bytes(0x00000041) == utf8_bytes{ 0x41, 0x00, 0x00, 0x00 }, "Utf32ToUtf8Bytes failed for 1-byte character { 0x00000041 }.");
-			static_assert(Utf32ToUtf8Bytes(0x00000061) == utf8_bytes{ 0x61, 0x00, 0x00, 0x00 }, "Utf32ToUtf8Bytes failed for 1-byte character { 0x00000061 }.");
-			static_assert(Utf32ToUtf8Bytes(0x00000021) == utf8_bytes{ 0x21, 0x00, 0x00, 0x00 }, "Utf32ToUtf8Bytes failed for 1-byte character { 0x00000021 }.");
+			static_assert(Utf32ToUtf8Bytes(utf_cp32_t{ 0x00000041 }) == utf8_bytes{ 0x41, 0x00, 0x00, 0x00 }, "Utf32ToUtf8Bytes failed for 1-byte character { 0x00000041 }.");
+			static_assert(Utf32ToUtf8Bytes(utf_cp32_t{ 0x00000061 }) == utf8_bytes{ 0x61, 0x00, 0x00, 0x00 }, "Utf32ToUtf8Bytes failed for 1-byte character { 0x00000061 }.");
+			static_assert(Utf32ToUtf8Bytes(utf_cp32_t{ 0x00000021 }) == utf8_bytes{ 0x21, 0x00, 0x00, 0x00 }, "Utf32ToUtf8Bytes failed for 1-byte character { 0x00000021 }.");
 
 			// UTF-32 to UTF-8 (2-byte characters)
-			static_assert(Utf32ToUtf8Bytes(0x000000E9) == utf8_bytes{ 0xC3, 0xA9, 0x00, 0x00 }, "Utf32ToUtf8Bytes failed for 2-byte character { 0x000000E9 }.");
-			static_assert(Utf32ToUtf8Bytes(0x000000F1) == utf8_bytes{ 0xC3, 0xB1, 0x00, 0x00 }, "Utf32ToUtf8Bytes failed for 2-byte character { 0x000000F1 }.");
-			static_assert(Utf32ToUtf8Bytes(0x000003BB) == utf8_bytes{ 0xCE, 0xBB, 0x00, 0x00 }, "Utf32ToUtf8Bytes failed for 2-byte character { 0x000003BB }.");
+			static_assert(Utf32ToUtf8Bytes(utf_cp32_t{ 0x000000E9 }) == utf8_bytes{ 0xC3, 0xA9, 0x00, 0x00 }, "Utf32ToUtf8Bytes failed for 2-byte character { 0x000000E9 }.");
+			static_assert(Utf32ToUtf8Bytes(utf_cp32_t{ 0x000000F1 }) == utf8_bytes{ 0xC3, 0xB1, 0x00, 0x00 }, "Utf32ToUtf8Bytes failed for 2-byte character { 0x000000F1 }.");
+			static_assert(Utf32ToUtf8Bytes(utf_cp32_t{ 0x000003BB }) == utf8_bytes{ 0xCE, 0xBB, 0x00, 0x00 }, "Utf32ToUtf8Bytes failed for 2-byte character { 0x000003BB }.");
 
 			// UTF-32 to UTF-8 (3-byte characters)
-			static_assert(Utf32ToUtf8Bytes(0x00000905) == utf8_bytes{ 0xE0, 0xA4, 0x85, 0x00 }, "Utf32ToUtf8Bytes failed for 3-byte character { 0x00000905 }.");
-			static_assert(Utf32ToUtf8Bytes(0x00004E2D) == utf8_bytes{ 0xE4, 0xB8, 0xAD, 0x00 }, "Utf32ToUtf8Bytes failed for 3-byte character { 0x00004E2D }.");
-			static_assert(Utf32ToUtf8Bytes(0x000020A4) == utf8_bytes{ 0xE2, 0x82, 0xA4, 0x00 }, "Utf32ToUtf8Bytes failed for 3-byte character { 0x000020A4 }.");
+			static_assert(Utf32ToUtf8Bytes(utf_cp32_t{ 0x00000905 }) == utf8_bytes{ 0xE0, 0xA4, 0x85, 0x00 }, "Utf32ToUtf8Bytes failed for 3-byte character { 0x00000905 }.");
+			static_assert(Utf32ToUtf8Bytes(utf_cp32_t{ 0x00004E2D }) == utf8_bytes{ 0xE4, 0xB8, 0xAD, 0x00 }, "Utf32ToUtf8Bytes failed for 3-byte character { 0x00004E2D }.");
+			static_assert(Utf32ToUtf8Bytes(utf_cp32_t{ 0x000020A4 }) == utf8_bytes{ 0xE2, 0x82, 0xA4, 0x00 }, "Utf32ToUtf8Bytes failed for 3-byte character { 0x000020A4 }.");
 
 			// UTF-32 to UTF-8 (4-byte characters)
-			static_assert(Utf32ToUtf8Bytes(0x0001F600) == utf8_bytes{ 0xF0, 0x9F, 0x98, 0x80 }, "Utf32ToUtf8Bytes failed for 4-byte character { 0x0001F600 }.");
-			static_assert(Utf32ToUtf8Bytes(0x0001F004) == utf8_bytes{ 0xF0, 0x9F, 0x80, 0x84 }, "Utf32ToUtf8Bytes failed for 4-byte character { 0x0001F004 }.");
-			static_assert(Utf32ToUtf8Bytes(0x00010348) == utf8_bytes{ 0xF0, 0x90, 0x8D, 0x88 }, "Utf32ToUtf8Bytes failed for 4-byte character { 0x00010348 }.");
+			static_assert(Utf32ToUtf8Bytes(utf_cp32_t{ 0x0001F600 }) == utf8_bytes{ 0xF0, 0x9F, 0x98, 0x80 }, "Utf32ToUtf8Bytes failed for 4-byte character { 0x0001F600 }.");
+			static_assert(Utf32ToUtf8Bytes(utf_cp32_t{ 0x0001F004 }) == utf8_bytes{ 0xF0, 0x9F, 0x80, 0x84 }, "Utf32ToUtf8Bytes failed for 4-byte character { 0x0001F004 }.");
+			static_assert(Utf32ToUtf8Bytes(utf_cp32_t{ 0x00010348 }) == utf8_bytes{ 0xF0, 0x90, 0x8D, 0x88 }, "Utf32ToUtf8Bytes failed for 4-byte character { 0x00010348 }.");
 
 			// UTF-32 to UTF-8 (null terminator)
-			static_assert(Utf32ToUtf8Bytes(0x00000000) == utf8_bytes{ 0x00, 0x00, 0x00, 0x00 }, "Utf32ToUtf8Bytes failed for null terminator.");
+			static_assert(Utf32ToUtf8Bytes(utf_cp32_t{ 0x00000000 }) == utf8_bytes{ 0x00, 0x00, 0x00, 0x00 }, "Utf32ToUtf8Bytes failed for null terminator.");
 
 			// UTF-32 to UTF-8 (invalid characters)
-			static_assert(Utf32ToUtf8Bytes(0x00110000) == utf8_bytes{ 0x00, 0x00, 0x00, 0x00 }, "Utf32ToUtf8Bytes failed for invalid character (out of range).");
-			static_assert(Utf32ToUtf8Bytes(0x0000D800) == utf8_bytes{ 0x00, 0x00, 0x00, 0x00 }, "Utf32ToUtf8Bytes failed for invalid character (lone surrogate).");
-			static_assert(Utf32ToUtf8Bytes(0x00110000) == utf8_bytes{ 0x00, 0x00, 0x00, 0x00 }, "Utf32ToUtf8Bytes failed for invalid character (beyond valid Unicode range).");
+			static_assert(Utf32ToUtf8Bytes(utf_cp32_t{ 0x00110000 }) == utf8_bytes{ 0x00, 0x00, 0x00, 0x00 }, "Utf32ToUtf8Bytes failed for invalid character (out of range).");
+			static_assert(Utf32ToUtf8Bytes(utf_cp32_t{ 0x0000D800 }) == utf8_bytes{ 0x00, 0x00, 0x00, 0x00 }, "Utf32ToUtf8Bytes failed for invalid character (lone surrogate).");
+			static_assert(Utf32ToUtf8Bytes(utf_cp32_t{ 0x00110000 }) == utf8_bytes{ 0x00, 0x00, 0x00, 0x00 }, "Utf32ToUtf8Bytes failed for invalid character (beyond valid Unicode range).");
 #endif // UTFN_TESTS && UTFN_CONVERSION_TESTS
 		}
 
@@ -210,34 +210,32 @@ namespace UtfNTests
 		{
 #if defined(UTFN_TESTS) && defined(UTFN_CONVERSION_TESTS)
 			// UTF-8 to UTF-32 (1-byte characters)
-			static_assert(Utf8BytesToUtf32({ 0x41, 0x00, 0x00, 0x00 }) == 0x00000041, "Utf8BytesToUtf32 failed for 1-byte character { 0x00000041 }.");
-			static_assert(Utf8BytesToUtf32({ 0x61, 0x00, 0x00, 0x00 }) == 0x00000061, "Utf8BytesToUtf32 failed for 1-byte character { 0x00000061 }.");
-			static_assert(Utf8BytesToUtf32({ 0x21, 0x00, 0x00, 0x00 }) == 0x00000021, "Utf8BytesToUtf32 failed for 1-byte character { 0x00000021 }.");
+			static_assert(Utf8BytesToUtf32(utf8_bytes{ 0x41, 0x00, 0x00, 0x00 }) == 0x00000041, "Utf8BytesToUtf32 failed for 1-byte character { 0x00000041 }.");
+			static_assert(Utf8BytesToUtf32(utf8_bytes{ 0x61, 0x00, 0x00, 0x00 }) == 0x00000061, "Utf8BytesToUtf32 failed for 1-byte character { 0x00000061 }.");
+			static_assert(Utf8BytesToUtf32(utf8_bytes{ 0x21, 0x00, 0x00, 0x00 }) == 0x00000021, "Utf8BytesToUtf32 failed for 1-byte character { 0x00000021 }.");
 			
 			// UTF-8 to UTF-32 (2-byte characters)
-			static_assert(Utf8BytesToUtf32({ 0xC3, 0xA9, 0x00, 0x00 }) == 0x000000E9, "Utf8BytesToUtf32 failed for 2-byte character { 0x000000E9 }.");
-			static_assert(Utf8BytesToUtf32({ 0xC3, 0xB1, 0x00, 0x00 }) == 0x000000F1, "Utf8BytesToUtf32 failed for 2-byte character { 0x000000F1 }.");
-			static_assert(Utf8BytesToUtf32({ 0xCE, 0xBB, 0x00, 0x00 }) == 0x000003BB, "Utf8BytesToUtf32 failed for 2-byte character { 0x000003BB }.");
+			static_assert(Utf8BytesToUtf32(utf8_bytes{ 0xC3, 0xA9, 0x00, 0x00 }) == 0x000000E9, "Utf8BytesToUtf32 failed for 2-byte character { 0x000000E9 }.");
+			static_assert(Utf8BytesToUtf32(utf8_bytes{ 0xC3, 0xB1, 0x00, 0x00 }) == 0x000000F1, "Utf8BytesToUtf32 failed for 2-byte character { 0x000000F1 }.");
+			static_assert(Utf8BytesToUtf32(utf8_bytes{ 0xCE, 0xBB, 0x00, 0x00 }) == 0x000003BB, "Utf8BytesToUtf32 failed for 2-byte character { 0x000003BB }.");
 			
-			static_assert(UtfImpl::Utf8::IsValidUnicodeChar<2>(0xC3, 0xA9, 0x00, 0x00), "why not?");
-
 			// UTF-8 to UTF-32 (3-byte characters)
-			static_assert(Utf8BytesToUtf32({ 0xE0, 0xA4, 0x85, 0x00 }) == 0x00000905, "Utf8BytesToUtf32 failed for 3-byte character { 0x00000905 }.");
-			static_assert(Utf8BytesToUtf32({ 0xE4, 0xB8, 0xAD, 0x00 }) == 0x00004E2D, "Utf8BytesToUtf32 failed for 3-byte character { 0x00004E2D }.");
-			static_assert(Utf8BytesToUtf32({ 0xE2, 0x82, 0xA4, 0x00 }) == 0x000020A4, "Utf8BytesToUtf32 failed for 3-byte character { 0x000020A4 }.");
+			static_assert(Utf8BytesToUtf32(utf8_bytes{ 0xE0, 0xA4, 0x85, 0x00 }) == 0x00000905, "Utf8BytesToUtf32 failed for 3-byte character { 0x00000905 }.");
+			static_assert(Utf8BytesToUtf32(utf8_bytes{ 0xE4, 0xB8, 0xAD, 0x00 }) == 0x00004E2D, "Utf8BytesToUtf32 failed for 3-byte character { 0x00004E2D }.");
+			static_assert(Utf8BytesToUtf32(utf8_bytes{ 0xE2, 0x82, 0xA4, 0x00 }) == 0x000020A4, "Utf8BytesToUtf32 failed for 3-byte character { 0x000020A4 }.");
 			
 			// UTF-8 to UTF-32 (4-byte characters)
-			static_assert(Utf8BytesToUtf32({ 0xF0, 0x9F, 0x98, 0x80 }) == 0x0001F600, "Utf8BytesToUtf32 failed for 4-byte character { 0x0001F600 }.");
-			static_assert(Utf8BytesToUtf32({ 0xF0, 0x9F, 0x80, 0x84 }) == 0x0001F004, "Utf8BytesToUtf32 failed for 4-byte character { 0x0001F004 }.");
-			static_assert(Utf8BytesToUtf32({ 0xF0, 0x90, 0x8D, 0x88 }) == 0x00010348, "Utf8BytesToUtf32 failed for 4-byte character { 0x00010348 }.");
+			static_assert(Utf8BytesToUtf32(utf8_bytes{ 0xF0, 0x9F, 0x98, 0x80 }) == 0x0001F600, "Utf8BytesToUtf32 failed for 4-byte character { 0x0001F600 }.");
+			static_assert(Utf8BytesToUtf32(utf8_bytes{ 0xF0, 0x9F, 0x80, 0x84 }) == 0x0001F004, "Utf8BytesToUtf32 failed for 4-byte character { 0x0001F004 }.");
+			static_assert(Utf8BytesToUtf32(utf8_bytes{ 0xF0, 0x90, 0x8D, 0x88 }) == 0x00010348, "Utf8BytesToUtf32 failed for 4-byte character { 0x00010348 }.");
 			
 			// UTF-8 to UTF-32 (null terminator)
-			static_assert(Utf8BytesToUtf32({ 0x00, 0x00, 0x00, 0x00 }) == 0x00000000, "Utf8BytesToUtf32 failed for null terminator.");
+			static_assert(Utf8BytesToUtf32(utf8_bytes{ 0x00, 0x00, 0x00, 0x00 }) == 0x00000000, "Utf8BytesToUtf32 failed for null terminator.");
 			
 			// UTF-8 to UTF-32 (invalid characters)
-			static_assert(Utf8BytesToUtf32({ 0xC0, 0x00, 0x00, 0x00 }) == 0x00000000, "Utf8BytesToUtf32 failed for invalid character (overlong sequence).");
-			static_assert(Utf8BytesToUtf32({ 0x80, 0x00, 0x00, 0x00 }) == 0x00000000, "Utf8BytesToUtf32 failed for invalid character (lone continuation byte).");
-			static_assert(Utf8BytesToUtf32({ 0xF8, 0x00, 0x00, 0x00 }) == 0x00000000, "Utf8BytesToUtf32 failed for invalid character (out of range).");
+			static_assert(Utf8BytesToUtf32(utf8_bytes{ 0xC0, 0x00, 0x00, 0x00 }) == 0x00000000, "Utf8BytesToUtf32 failed for invalid character (overlong sequence).");
+			static_assert(Utf8BytesToUtf32(utf8_bytes{ 0x80, 0x00, 0x00, 0x00 }) == 0x00000000, "Utf8BytesToUtf32 failed for invalid character (lone continuation byte).");
+			static_assert(Utf8BytesToUtf32(utf8_bytes{ 0xF8, 0x00, 0x00, 0x00 }) == 0x00000000, "Utf8BytesToUtf32 failed for invalid character (out of range).");
 #endif // UTFN_TESTS && UTFN_CONVERSION_TESTS
 		}
 	}
