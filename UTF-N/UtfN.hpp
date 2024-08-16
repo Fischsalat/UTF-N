@@ -105,18 +105,18 @@ namespace UtfN
 	{
 		namespace Utils
 		{
-			template<typename ValueType, typename FlagType>
+			template<typename value_type, typename flag_type>
 			UTF_CONSTEXPR UTF_NODISCARD
-				bool IsFlagSet(ValueType Value, FlagType Flag) noexcept
+				bool IsFlagSet(value_type Value, flag_type Flag) noexcept
 			{
 				return (Value & Flag) == Flag;
 			}
 
-			template<typename ValueType, typename FlagType>
+			template<typename value_type, typename flag_type>
 			UTF_CONSTEXPR UTF_NODISCARD
-				ValueType GetWithClearedFlag(ValueType Value, FlagType Flag) noexcept
+				value_type GetWithClearedFlag(value_type Value, flag_type Flag) noexcept
 			{
-				return static_cast<ValueType>(Value & static_cast<FlagType>(~Flag));
+				return static_cast<value_type>(Value & static_cast<flag_type>(~Flag));
 			}
 		}
 
@@ -227,7 +227,7 @@ namespace UtfN
 				const bool IsValidHighSurrogate = IsHighSurrogate(UpperCodepoint);
 				const bool IsValidLowSurrogate = IsLowSurrogate(LowerCodepoint);
 
-				// Both are valid
+				// Both needt to be valid
 				if (IsValidHighSurrogate)
 					return IsValidLowSurrogate;
 
@@ -312,8 +312,8 @@ namespace UtfN
 
 		UTF_CONSTEXPR utf_char(utf8_bytes InChar) noexcept;
 
-		template<typename CharType, typename = decltype(ParseUtf8CharFromStr(std::declval<const CharType*>()))>
-		UTF_CONSTEXPR utf_char(const CharType* SingleCharString) noexcept;
+		template<typename char_type, typename = decltype(ParseUtf8CharFromStr(std::declval<const char_type*>()))>
+		UTF_CONSTEXPR utf_char(const char_type* SingleCharString) noexcept;
 
 	public:
 		UTF_CONSTEXPR utf_char& operator=(utf_char&&) = default;
@@ -351,8 +351,8 @@ namespace UtfN
 
 		UTF_CONSTEXPR utf_char(utf16_pair InChar) noexcept;
 
-		template<typename CharType, typename = decltype(ParseUtf16CharFromStr(std::declval<const CharType*>()))>
-		UTF_CONSTEXPR utf_char(const CharType* SingleCharString) noexcept;
+		template<typename char_type, typename = decltype(ParseUtf16CharFromStr(std::declval<const char_type*>()))>
+		UTF_CONSTEXPR utf_char(const char_type* SingleCharString) noexcept;
 
 	public:
 		UTF_CONSTEXPR utf_char& operator=(utf_char&&) = default;
@@ -387,8 +387,8 @@ namespace UtfN
 
 		UTF_CONSTEXPR utf_char(utf_cp32_t InChar) noexcept;
 
-		template<typename CharType, typename = decltype(ParseUtf32CharFromStr(std::declval<const CharType*>()))>
-		UTF_CONSTEXPR utf_char(const CharType* SingleCharString) noexcept;
+		template<typename char_type, typename = decltype(ParseUtf32CharFromStr(std::declval<const char_type*>()))>
+		UTF_CONSTEXPR utf_char(const char_type* SingleCharString) noexcept;
 
 	public:
 		UTF_CONSTEXPR utf_char& operator=(utf_char&&) = default;
@@ -755,10 +755,10 @@ namespace UtfN
 	};
 
 
-	template<typename CodepointType,
-		typename std::enable_if<sizeof(CodepointType) == 0x1 && std::is_integral<CodepointType>::value, int>::type = 0>
+	template<typename codepoint_type,
+		typename std::enable_if<sizeof(codepoint_type) == 0x1 && std::is_integral<codepoint_type>::value, int>::type = 0>
 	UTF_CONSTEXPR UTF_NODISCARD
-		utf_char8 ParseUtf8CharFromStr(const CodepointType* Str)
+		utf_char8 ParseUtf8CharFromStr(const codepoint_type* Str)
 	{
 		if (!Str)
 			return utf8_bytes{};
@@ -786,10 +786,10 @@ namespace UtfN
 		return RetChar;
 	}
 
-	template<typename CodepointType,
-		typename std::enable_if<sizeof(CodepointType) == 0x2 && std::is_integral<CodepointType>::value, int>::type = 0>
+	template<typename codepoint_type,
+		typename std::enable_if<sizeof(codepoint_type) == 0x2 && std::is_integral<codepoint_type>::value, int>::type = 0>
 	UTF_CONSTEXPR UTF_NODISCARD
-		utf_char16 ParseUtf16CharFromStr(const CodepointType* Str)
+		utf_char16 ParseUtf16CharFromStr(const codepoint_type* Str)
 	{
 		if (!Str)
 			return utf_char16{};
@@ -802,10 +802,10 @@ namespace UtfN
 		return utf16_pair{ FirstCodepoint,  static_cast<utf_cp16_t>(Str[1]) };
 	}
 
-	template<typename CodepointType,
-		typename std::enable_if<sizeof(CodepointType) == 0x4 && std::is_integral<CodepointType>::value, int>::type = 0>
+	template<typename codepoint_type,
+		typename std::enable_if<sizeof(codepoint_type) == 0x4 && std::is_integral<codepoint_type>::value, int>::type = 0>
 	UTF_CONSTEXPR UTF_NODISCARD
-		utf_char32 ParseUtf32CharFromStr(const CodepointType* Str)
+		utf_char32 ParseUtf32CharFromStr(const codepoint_type* Str)
 	{
 		if (!Str)
 			return utf_char32{};
@@ -821,8 +821,8 @@ namespace UtfN
 	{
 	}
 
-	template<typename CharType, typename>
-	UTF_CONSTEXPR utf_char<UtfEncodingType::Utf8>::utf_char(const CharType* SingleCharString) noexcept
+	template<typename char_type, typename>
+	UTF_CONSTEXPR utf_char<UtfEncodingType::Utf8>::utf_char(const char_type* SingleCharString) noexcept
 		: utf_char<UtfEncodingType::Utf8>(ParseUtf8CharFromStr(SingleCharString))
 	{
 	}
@@ -913,8 +913,8 @@ namespace UtfN
 	{
 	}
 
-	template<typename CharType, typename>
-	UTF_CONSTEXPR utf_char<UtfEncodingType::Utf16>::utf_char(const CharType* SingleCharString) noexcept
+	template<typename char_type, typename>
+	UTF_CONSTEXPR utf_char<UtfEncodingType::Utf16>::utf_char(const char_type* SingleCharString) noexcept
 		: utf_char<UtfEncodingType::Utf16>(ParseUtf16CharFromStr(SingleCharString))
 	{
 	}
@@ -983,8 +983,8 @@ namespace UtfN
 	{
 	}
 
-	template<typename CharType, typename>
-	UTF_CONSTEXPR utf_char<UtfEncodingType::Utf32>::utf_char(const CharType* SingleCharString) noexcept
+	template<typename char_type, typename>
+	UTF_CONSTEXPR utf_char<UtfEncodingType::Utf32>::utf_char(const char_type* SingleCharString) noexcept
 		: Char(*SingleCharString)
 	{
 	}
