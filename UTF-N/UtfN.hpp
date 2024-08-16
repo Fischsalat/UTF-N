@@ -227,8 +227,12 @@ namespace UtfN
 				const bool IsValidHighSurrogate = IsHighSurrogate(UpperCodepoint);
 				const bool IsValidLowSurrogate = IsLowSurrogate(LowerCodepoint);
 
-				// Either both are valid suorrogates, or none are
-				return (IsValidHighSurrogate && IsValidLowSurrogate) || (!IsValidHighSurrogate && !IsValidLowSurrogate);
+				// Both are valid
+				if (IsValidHighSurrogate)
+					return IsValidLowSurrogate;
+
+				// Neither are valid && the codepoints are not in the wrong surrogate ranges
+				return !IsValidLowSurrogate && !IsHighSurrogate(LowerCodepoint) && !IsLowSurrogate(UpperCodepoint);
 			}
 		}
 
@@ -308,7 +312,8 @@ namespace UtfN
 
 		UTF_CONSTEXPR utf_char(utf8_bytes InChar) noexcept;
 
-		UTF_CONSTEXPR utf_char(const utf_cp8_t* SingleCharString) noexcept;
+		template<typename CharType, typename = decltype(ParseUtf8CharFromStr(std::declval<const CharType*>()))>
+		UTF_CONSTEXPR utf_char(const CharType* SingleCharString) noexcept;
 
 	public:
 		UTF_CONSTEXPR utf_char& operator=(utf_char&&) = default;
@@ -346,7 +351,8 @@ namespace UtfN
 
 		UTF_CONSTEXPR utf_char(utf16_pair InChar) noexcept;
 
-		UTF_CONSTEXPR utf_char(const utf_cp16_t* SingleCharString) noexcept;
+		template<typename CharType, typename = decltype(ParseUtf16CharFromStr(std::declval<const CharType*>()))>
+		UTF_CONSTEXPR utf_char(const CharType* SingleCharString) noexcept;
 
 	public:
 		UTF_CONSTEXPR utf_char& operator=(utf_char&&) = default;
@@ -381,7 +387,8 @@ namespace UtfN
 
 		UTF_CONSTEXPR utf_char(utf_cp32_t InChar) noexcept;
 
-		UTF_CONSTEXPR utf_char(const utf_cp32_t* SingleCharString) noexcept;
+		template<typename CharType, typename = decltype(ParseUtf32CharFromStr(std::declval<const CharType*>()))>
+		UTF_CONSTEXPR utf_char(const CharType* SingleCharString) noexcept;
 
 	public:
 		UTF_CONSTEXPR utf_char& operator=(utf_char&&) = default;
@@ -679,7 +686,11 @@ namespace UtfN
 		inline utf8_iterator operator++()
 		{
 			// Advance over the bytes of the old character
-			int OldByteCount = GetUtf8CharLenght(static_cast<utf_cp8_t>(*CurrentIterator)); // ToDo: Handle invalid characters
+			int OldByteCount = CurrentChar.GetByteSize();
+
+			if (OldByteCount == 0)
+				CurrentIterator = EndIterator;
+
 			while (OldByteCount > 0 && CurrentIterator != EndIterator)
 			{
 				CurrentIterator++;
@@ -692,7 +703,7 @@ namespace UtfN
 		}
 
 	public:
-		inline utf8_bytes operator*() const
+		inline utf_char8 operator*() const
 		{
 			return CurrentChar;
 		}
@@ -724,17 +735,14 @@ namespace UtfN
 				return;
 
 			// Reset the bytes of the character
-			CurrentChar.Codepoints[0] = '\0';
-			CurrentChar.Codepoints[1] = '\0';
-			CurrentChar.Codepoints[2] = '\0';
-			CurrentChar.Codepoints[3] = '\0';
+			CurrentChar = "\0";
 
 			const int CharByteCount = GetUtf8CharLenght(static_cast<utf_cp8_t>(*CurrentIterator));
 			auto IteratorCopy = CurrentIterator;
 
 			for (int i = 0; i < CharByteCount && IteratorCopy != EndIterator; i++)
 			{
-				CurrentChar.Codepoints[i] = static_cast<utf_cp8_t>(*IteratorCopy);
+				CurrentChar[i] = static_cast<utf_cp8_t>(*IteratorCopy);
 				IteratorCopy++;
 			}
 		}
@@ -743,8 +751,9 @@ namespace UtfN
 		byte_iterator_type CurrentIterator;
 		byte_iterator_type EndIterator;
 
-		utf8_bytes CurrentChar;
+		utf_char8 CurrentChar;
 	};
+
 
 	template<typename CodepointType,
 		typename std::enable_if<sizeof(CodepointType) == 0x1 && std::is_integral<CodepointType>::value, int>::type = 0>
@@ -812,7 +821,8 @@ namespace UtfN
 	{
 	}
 
-	UTF_CONSTEXPR utf_char<UtfEncodingType::Utf8>::utf_char(const utf_cp8_t* SingleCharString) noexcept
+	template<typename CharType, typename>
+	UTF_CONSTEXPR utf_char<UtfEncodingType::Utf8>::utf_char(const CharType* SingleCharString) noexcept
 		: utf_char<UtfEncodingType::Utf8>(ParseUtf8CharFromStr(SingleCharString))
 	{
 	}
@@ -903,7 +913,8 @@ namespace UtfN
 	{
 	}
 
-	UTF_CONSTEXPR utf_char<UtfEncodingType::Utf16>::utf_char(const utf_cp16_t* SingleCharString) noexcept
+	template<typename CharType, typename>
+	UTF_CONSTEXPR utf_char<UtfEncodingType::Utf16>::utf_char(const CharType* SingleCharString) noexcept
 		: utf_char<UtfEncodingType::Utf16>(ParseUtf16CharFromStr(SingleCharString))
 	{
 	}
@@ -972,7 +983,8 @@ namespace UtfN
 	{
 	}
 
-	UTF_CONSTEXPR utf_char<UtfEncodingType::Utf32>::utf_char(const utf_cp32_t* SingleCharString) noexcept
+	template<typename CharType, typename>
+	UTF_CONSTEXPR utf_char<UtfEncodingType::Utf32>::utf_char(const CharType* SingleCharString) noexcept
 		: Char(*SingleCharString)
 	{
 	}

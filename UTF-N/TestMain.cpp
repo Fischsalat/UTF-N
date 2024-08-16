@@ -48,9 +48,9 @@ int main()
 
 	utf8_iterator<std::string::const_iterator> MyIterator(Str);
 
-	for (utf8_bytes Char : MyIterator)
+	for (utf_char8 Char : MyIterator)
 	{
-		std::cout << "StrBytes = " << +Char.Codepoints[0] << ", " << +Char.Codepoints[1] << ", " << +Char.Codepoints[2] << ", " << +Char.Codepoints[3] << "\n";
+		std::cout << "StrBytes = " << +Char[0] << ", " << +Char[1] << ", " << +Char[2] << ", " << +Char[3] << "\n";
 	}
 	std::cout << "\n" << std::endl;
 
@@ -59,9 +59,9 @@ int main()
 
 	utf8_iterator<const char*> My2ndIterator(Array, Array + sizeof(u8"Hello 里成里成里成 word!"));
 
-	for (utf8_bytes Char : My2ndIterator)
+	for (utf_char8 Char : My2ndIterator)
 	{
-		std::cout << "ArrayBytes = " << +Char.Codepoints[0] << ", " << +Char.Codepoints[1] << ", " << +Char.Codepoints[2] << ", " << +Char.Codepoints[3] << "\n";
+		std::cout << "ArrayBytes = " << +Char[0] << ", " << +Char[1] << ", " << +Char[2] << ", " << +Char[3] << "\n";
 	}
 	std::cout << "\n" << std::endl;
 
