@@ -72,6 +72,17 @@ int main()
 	}
 
 
+	std::wstring FunStr = L"Hello 里成里成eeee!";
+	utf16_iterator<std::wstring::const_iterator> MyIterator2(FunStr);
+
+	for (utf_char8 Char : MyIterator)
+	{
+		std::cout << "StrBytes = " << +Char[0] << ", " << +Char[1] << ", " << +Char[2] << ", " << +Char[3] << "\n";
+	}
+	std::cout << "\n" << std::endl;
+
+
+
 	constexpr utf_char16 Pair = Utf32ToUtf16Pair(0x1D11E);
 
 	constexpr auto var1 = Pair.GetAsUtf16();
