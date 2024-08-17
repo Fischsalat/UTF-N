@@ -279,7 +279,7 @@ namespace UtfN
 					typename iterator_deref_type = decltype(*std::end(std::declval<container_type>())), // Iterator can be dereferenced
 					typename = std::enable_if<sizeof(iterator_deref_type) == utf_char_type::GetCodepointSize()>::type // Return-value of derferenced iterator has the same size as one codepoint
 				>
-					explicit UTF_CONSTEXPR utf_char_iterator_base(container_type& Container)
+				explicit UTF_CONSTEXPR utf_char_iterator_base(container_type& Container)
 					: CurrentIterator(std::begin(Container)), NextCharStartIterator(std::begin(Container)), EndIterator(std::end(Container))
 				{
 					utf_char_iterator_base_child_acessor<child_iterator_type>::ReadChar(static_cast<child_iterator_type*>(this));
@@ -815,7 +815,7 @@ namespace UtfN
 			// Reset the bytes of the character
 			this->CurrentChar = utf16_pair{ 0 };
 
-			const int CharCodepointCount = GetUtf16CharLenght(static_cast<utf_cp8_t>(*this->NextCharStartIterator));
+			const int CharCodepointCount = GetUtf16CharLenght(static_cast<utf_cp16_t>(*this->NextCharStartIterator));
 			
 			if (CharCodepointCount == 0x1)
 			{
@@ -987,25 +987,25 @@ namespace UtfN
 	UTF_CONSTEXPR UTF_NODISCARD
 		utf_char8 utf_char<UtfEncodingType::Utf8>::GetAsUtf8() const noexcept
 	{
-		return Char;
+		return *this;
 	}
 
 	UTF_CONSTEXPR UTF_NODISCARD
 		utf_char16 utf_char<UtfEncodingType::Utf8>::GetAsUtf16() const noexcept
 	{
-		return Utf8BytesToUtf16(Char);
+		return Utf8BytesToUtf16(*this);
 	}
 
 	UTF_CONSTEXPR UTF_NODISCARD
 		utf_char32 utf_char<UtfEncodingType::Utf8>::GetAsUtf32() const noexcept
 	{
-		return Utf8BytesToUtf32(static_cast<utf8_bytes>(Char));
+		return Utf8BytesToUtf32(*this);
 	}
 
 	UTF_CONSTEXPR UTF_NODISCARD
 		utf_char8 utf_char<UtfEncodingType::Utf8>::Get() const
 	{
-		return Char;
+		return *this;
 	}
 	
 	UTF_CONSTEXPR UTF_NODISCARD

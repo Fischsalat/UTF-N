@@ -32,6 +32,8 @@ int Replace(char* Current, char* End, char* MaxCapacity)
 
 int main()
 {
+	std::cout << std::hex;
+
 	using namespace UtfN;
 
 	UtfNTests::Parsing::TestParseUtf8CharFromStr();
@@ -40,11 +42,11 @@ int main()
 	std::string Str = reinterpret_cast<const char*>(u8"Hell 里成");
 	std::cout << "\nstr: " << Str << "\n\n";
 
-	constexpr utf_char<UtfEncodingType::Utf8> RandomChar = utf8_bytes{ 20, 120, 33, 00 };
+	//constexpr utf_char<UtfEncodingType::Utf8> RandomChar = utf8_bytes{ 20, 120, 33, 00 };
 
-	constexpr auto FirstByte = RandomChar[0];
+	//constexpr auto FirstByte = RandomChar[0];
 
-	auto A = RandomChar.GetAsUtf8();
+	//auto A = RandomChar.GetAsUtf8();
 
 	utf8_iterator<std::string::const_iterator> MyIterator(Str);
 
@@ -71,13 +73,16 @@ int main()
 		std::cout << "yay\n";
 	}
 
+	utf_char16 C = utf16_pair{ 2000, 0000 };
+	//utf_char8 C2 = C;
 
-	std::wstring FunStr = L"Hello 里成里成eeee!";
+
+	std::wstring FunStr = L"αβ💡⚡🔍📝𝇎𝈋";
 	utf16_iterator<std::wstring::const_iterator> MyIterator2(FunStr);
 
-	for (utf_char8 Char : MyIterator)
+	for (utf_char16 Char : MyIterator2)
 	{
-		std::cout << "StrBytes = " << +Char[0] << ", " << +Char[1] << ", " << +Char[2] << ", " << +Char[3] << "\n";
+		std::cout << "StrBytes: lower: " << +Char.Char.Lower << ",  upper: " << +Char.Char.Upper << std::endl;
 	}
 	std::cout << "\n" << std::endl;
 
@@ -85,13 +90,13 @@ int main()
 
 	constexpr utf_char16 Pair = Utf32ToUtf16Pair(0x1D11E);
 
-	constexpr auto var1 = Pair.GetAsUtf16();
-	constexpr auto var2 = Pair.GetAsUtf8();
-	constexpr auto var3 = Pair.GetAsUtf32();
-
-	(void)var1;
-	(void)var2;
-	(void)var3;
+	//constexpr auto var1 = Pair.GetAsUtf16();
+	//constexpr auto var2 = Pair.GetAsUtf8();
+	//constexpr auto var3 = Pair.GetAsUtf32();
+	//
+	//(void)var1;
+	//(void)var2;
+	//(void)var3;
 
 	std::cout << "Pair.Upper: " << std::hex << static_cast<unsigned short>(Pair.Char.Upper) << "\n";
 	std::cout << "Pair.Lower: " << std::hex << static_cast<unsigned short>(Pair.Char.Lower) << "\n";
