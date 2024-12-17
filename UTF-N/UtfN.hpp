@@ -257,7 +257,8 @@ namespace UtfN
 				friend class utf_char_iterator_base;
 
 			private:
-				static void ReadChar(child_type* This)
+				static UTF_CONSTEXPR
+					void ReadChar(child_type* This)
 				{
 					return This->ReadChar();
 				}
@@ -277,7 +278,7 @@ namespace UtfN
 					typename = decltype(std::begin(std::declval<container_type>())), // Has begin
 					typename = decltype(std::end(std::declval<container_type>())),   // Has end
 					typename iterator_deref_type = decltype(*std::end(std::declval<container_type>())), // Iterator can be dereferenced
-					typename = std::enable_if<sizeof(iterator_deref_type) == utf_char_type::GetCodepointSize()>::type // Return-value of derferenced iterator has the same size as one codepoint
+					typename = std::enable_if<sizeof(std::decay<iterator_deref_type>::type) == utf_char_type::GetCodepointSize()>::type // Return-value of derferenced iterator has the same size as one codepoint
 				>
 				explicit UTF_CONSTEXPR utf_char_iterator_base(container_type& Container)
 					: CurrentIterator(std::begin(Container)), NextCharStartIterator(std::begin(Container)), EndIterator(std::end(Container))
@@ -286,7 +287,8 @@ namespace UtfN
 				}
 
 			public:
-				inline child_iterator_type& operator++()
+				UTF_CONSTEXPR inline
+					child_iterator_type& operator++()
 				{
 					// Skip ahead to the next char
 					CurrentIterator = NextCharStartIterator;
@@ -299,27 +301,31 @@ namespace UtfN
 				}
 
 			public:
-				inline utf_char_type operator*() const
+				UTF_CONSTEXPR inline
+					utf_char_type operator*() const
 				{
 					return CurrentChar;
 				}
 
-				inline bool operator==(const child_iterator_type& Other) const
+				UTF_CONSTEXPR inline bool operator==(const child_iterator_type& Other) const
 				{
 					return CurrentIterator == Other.CurrentIterator;
 				}
-				inline bool operator!=(const child_iterator_type& Other) const
+				UTF_CONSTEXPR inline
+					bool operator!=(const child_iterator_type& Other) const
 				{
 					return CurrentIterator != Other.CurrentIterator;
 				}
 
 			public:
-				child_iterator_type begin()
+				UTF_CONSTEXPR inline 
+					child_iterator_type begin()
 				{
 					return *static_cast<child_iterator_type*>(this);
 				}
 
-				child_iterator_type end()
+				UTF_CONSTEXPR inline
+					child_iterator_type end()
 				{
 					return child_iterator_type(EndIterator, EndIterator);
 				}
@@ -711,48 +717,19 @@ namespace UtfN
 	UTF_CONSTEXPR UTF_NODISCARD
 		utf_char8 Utf16PairToUtf8Bytes(const utf_char16 Character) noexcept
 	{
-		const utf_char32 As32BitChar = Utf16PairToUtf32(Character);
-
-		return Utf32ToUtf8Bytes(As32BitChar);
+		return Utf32ToUtf8Bytes(Utf16PairToUtf32(Character));
 	}
 
 	UTF_CONSTEXPR UTF_NODISCARD
 		utf_char16 Utf8BytesToUtf16(const utf_char8 Character) noexcept
 	{
-		const utf_char32 As32BitChar = Utf8BytesToUtf32(Character);
-
-		return Utf32ToUtf16Pair(As32BitChar);
-	}
-
-	template<typename byte_iterator_type>
-	UTF_CONSTEXPR byte_iterator_type ReplaceUtf8(byte_iterator_type Begin, byte_iterator_type End, utf_cp8_t CharToReplace, utf_cp8_t ReplacementChar)
-	{
-		using namespace UtfImpl;
-
-		if (Begin == End)
-			return End;
-
-		const auto ToReplaceSize = GetUtf8CharLenght(CharToReplace);
-		const auto ReplacementSize = GetUtf8CharLenght(ReplacementChar);
-
-		if (ToReplaceSize == ReplacementSize) // Trivial replacement
-		{
-
-		}
-		else if (ToReplaceSize < ReplacementSize) // 
-		{
-
-		}
-		else /* if (ToReplaceSize > ReplacementSize) */ // Replace and move following bytes back
-		{
-
-		}
+		return Utf32ToUtf16Pair(Utf8BytesToUtf32(Character));
 	}
 
 	template<
 		typename codepoint_iterator_type,
 		typename iterator_deref_type = decltype(*std::declval<codepoint_iterator_type>()), // Iterator can be dereferenced
-		typename = typename std::enable_if<sizeof(iterator_deref_type) == utf_char8::GetCodepointSize()>::type // Return-value of derferenced iterator has the same size as one codepoint
+		typename = typename std::enable_if<sizeof(std::decay<iterator_deref_type>::type) == utf_char8::GetCodepointSize()>::type // Return-value of derferenced iterator has the same size as one codepoint
 	>
 	class utf8_iterator : public UtfImpl::Iterator::utf_char_iterator_base<utf8_iterator<codepoint_iterator_type>, codepoint_iterator_type, utf_char8>
 	{
@@ -763,6 +740,9 @@ namespace UtfN
 
 	public:
 		using UtfImpl::Iterator::utf_char_iterator_base<own_type, codepoint_iterator_type, utf_char8>::utf_char_iterator_base;
+
+	public:
+		utf8_iterator() = delete;
 
 	private:
 		void ReadChar()
@@ -785,7 +765,7 @@ namespace UtfN
 					break;
 				}
 
-				this->CurrentChar[i] = static_cast<utf_cp8_t>(*this->NextCharStartIterator);
+				this->CurrentChar[static_cast<uint8_t>(i)] = static_cast<utf_cp8_t>(*this->NextCharStartIterator);
 				this->NextCharStartIterator++;
 			}
 		}
@@ -794,7 +774,7 @@ namespace UtfN
 	template<
 		typename codepoint_iterator_type,
 		typename iterator_deref_type = decltype(*std::declval<codepoint_iterator_type>()), // Iterator can be dereferenced
-		typename = typename std::enable_if<sizeof(iterator_deref_type) == utf_char16::GetCodepointSize()>::type // Return-value of derferenced iterator has the same size as one codepoint
+		typename = typename std::enable_if<sizeof(std::decay<iterator_deref_type>::type) == utf_char16::GetCodepointSize()>::type // Return-value of derferenced iterator has the same size as one codepoint
 	>
 	class utf16_iterator : public UtfImpl::Iterator::utf_char_iterator_base<utf16_iterator<codepoint_iterator_type>, codepoint_iterator_type, utf_char16>
 	{
@@ -806,8 +786,11 @@ namespace UtfN
 	public:
 		using UtfImpl::Iterator::utf_char_iterator_base<own_type, codepoint_iterator_type, utf_char16>::utf_char_iterator_base;
 
+	public:
+		utf16_iterator() = delete;
+
 	private:
-		void ReadChar()
+		UTF_CONSTEXPR void ReadChar()
 		{
 			if (this->NextCharStartIterator == this->EndIterator)
 				return;
@@ -847,7 +830,7 @@ namespace UtfN
 	template<
 		typename codepoint_iterator_type,
 		typename iterator_deref_type = decltype(*std::declval<codepoint_iterator_type>()), // Iterator can be dereferenced
-		typename = typename std::enable_if<sizeof(iterator_deref_type) == utf_char32::GetCodepointSize()>::type // Return-value of derferenced iterator has the same size as one codepoint
+		typename = typename std::enable_if<sizeof(std::decay<iterator_deref_type>::type) == utf_char32::GetCodepointSize()>::type // Return-value of derferenced iterator has the same size as one codepoint
 	>
 	class utf32_iterator : public UtfImpl::Iterator::utf_char_iterator_base<utf32_iterator<codepoint_iterator_type>, codepoint_iterator_type, utf_char32>
 	{
@@ -858,6 +841,9 @@ namespace UtfN
 
 	public:
 		using UtfImpl::Iterator::utf_char_iterator_base<own_type, codepoint_iterator_type, utf_char32>::utf_char_iterator_base;
+
+	public:
+		utf32_iterator() = delete;
 
 	private:
 		void ReadChar()
@@ -928,7 +914,63 @@ namespace UtfN
 		return static_cast<utf_cp32_t>(Str[0]);
 	}
 
+	template<typename Utf8CharString, typename Utf16CharString,
+		typename TargetCharType = std::decay<decltype(*std::begin(std::declval<Utf8CharString>()))>::type,
+		typename IteratorType = decltype(std::begin(std::declval<Utf16CharString>())),
+		typename = utf16_iterator<IteratorType>
+	>
+	UTF_CONSTEXPR20 UTF_NODISCARD
+		Utf8CharString Utf16StringToUtf8String(const Utf16CharString& StringToConvert)
+	{
+		Utf8CharString RetString;
 
+		for (utf_char16 Char : utf16_iterator<IteratorType>(StringToConvert))
+		{
+			const auto NewChar = Utf16PairToUtf8Bytes(Char);
+
+			for (int i = 0; i < NewChar.GetByteSize(); i++)
+				RetString += static_cast<TargetCharType>(NewChar[static_cast<uint8_t>(i)]);
+		}
+
+		return RetString;
+	}
+
+
+	UTF_CONSTEXPR20 UTF_NODISCARD
+		std::string WStringToString(const std::wstring& WideString)
+	{
+		(void)WideString;
+
+		if (UtfImpl::IsWCharUtf32)
+			return "";
+
+		return "";
+	}
+
+	template<typename byte_iterator_type>
+	UTF_CONSTEXPR byte_iterator_type ReplaceUtf8(byte_iterator_type Begin, byte_iterator_type End, utf_cp8_t CharToReplace, utf_cp8_t ReplacementChar)
+	{
+		using namespace UtfImpl;
+
+		if (Begin == End)
+			return End;
+
+		const auto ToReplaceSize = GetUtf8CharLenght(CharToReplace);
+		const auto ReplacementSize = GetUtf8CharLenght(ReplacementChar);
+
+		if (ToReplaceSize == ReplacementSize) // Trivial replacement
+		{
+
+		}
+		else if (ToReplaceSize < ReplacementSize) // 
+		{
+
+		}
+		else /* if (ToReplaceSize > ReplacementSize) */ // Replace and move following bytes back
+		{
+
+		}
+	}
 
 	// utf_char spezialization-implementation for Utf8
 	UTF_CONSTEXPR utf_char<UtfEncodingType::Utf8>::utf_char(utf8_bytes InChar) noexcept

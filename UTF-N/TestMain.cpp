@@ -13,6 +13,7 @@
 #endif
 
 #include <iostream>
+#include <string>
 
 // Restore warnings-levels after STL includes
 #if (defined(_MSC_VER))
@@ -87,6 +88,16 @@ int main()
 	std::cout << "\n" << std::endl;
 
 
+	const utf_cp32_t* SuperWideStr = U"αβ💡⚡🔍📝𝇎𝈋";
+	utf32_iterator<const utf_cp32_t*> MyIterator3(SuperWideStr, SuperWideStr + (sizeof(u8"Hello 里成里成里成 word!") / 4));
+
+	for (utf_char32 Char : MyIterator3)
+	{
+		std::cout << "StrBytes: " << +Char.Char << std::endl;
+	}
+	std::cout << "\n" << std::endl;
+
+
 
 	constexpr utf_char16 Pair = Utf32ToUtf16Pair(0x1D11E);
 
@@ -125,4 +136,8 @@ int main()
 	std::cout << "E. Utf8Bytes = " << +Utf8Bytes5[0] << ", " << +Utf8Bytes5[1] << ", " << +Utf8Bytes5[2] << ", " << +Utf8Bytes5[3] << "\n";
 	std::cout << "Orig (Utf32 : 0x110000): " << +Utf8BytesToUtf32(Utf8Bytes5) << "\n\n";
 
+	std::wstring MyTestWStr1 = L"Hell_world .com";
+	std::cout << "WString to String conversion-result: " << UtfN::Utf16StringToUtf8String<std::string>(MyTestWStr1) << std::endl;
+
+	std::cout << "WString to String conversion-result: " << UtfN::Utf16StringToUtf8String<std::string>(MyTestWStr1) << std::endl;
 }

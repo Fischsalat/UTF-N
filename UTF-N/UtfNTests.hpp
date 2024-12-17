@@ -3,6 +3,7 @@
 
 #define UTFN_CONVERSION_TESTS
 #define UTFN_PARSING_TESTS
+#define UTFN_COMPILATION_TESTS
 
 #define UTFN_INTERNALS_TESTS
 
@@ -69,10 +70,12 @@ namespace UtfNTests
 				static_assert(!UtfImpl::Utf16::IsLowSurrogate(0xD800), "IsLowSurrogate returned { true } for { 0xD800 }, should be { false }.");
 				static_assert(!UtfImpl::Utf16::IsLowSurrogate(0xDBFF), "IsLowSurrogate returned { true } for { 0xDBFF }, should be { false }.");
 				static_assert(!UtfImpl::Utf16::IsLowSurrogate(0xE000), "IsLowSurrogate returned { true } for { 0xE000 }, should be { false }.");
+#endif // UTFN_TESTS && UTFN_INTERNALS_TESTS
 			}
 
 			constexpr void TestIsHighSurrogate()
 			{
+#if defined(UTFN_TESTS) && defined(UTFN_INTERNALS_TESTS)
 				// Valid high surrogate tests
 				static_assert(UtfImpl::Utf16::IsHighSurrogate(0xD800), "IsHighSurrogate returned { false } for { 0xD800 }, should be { true }.");
 				static_assert(UtfImpl::Utf16::IsHighSurrogate(0xDBFF), "IsHighSurrogate returned { false } for { 0xDBFF }, should be { true }.");
@@ -312,7 +315,65 @@ namespace UtfNTests
 #endif // UTFN_TESTS && UTFN_PARSING_TESTS
 		}
 	}
-}
+
+	namespace Compilation
+	{
+		void TestUtf8IteratorCompilation()
+		{
+#if defined(UTFN_TESTS) && defined(UTFN_COMPILATION_TESTS)
+			static_assert(std::is_constructible<UtfN::utf16_iterator<const wchar_t*>, wchar_t*, wchar_t*>::value,
+				"Couldn't construct 'utf16_iterator<const wchar_t*>' from 'wchar_t*, wchar_t*'!");
+			static_assert(std::is_constructible<UtfN::utf16_iterator<const wchar_t*>, const wchar_t*, const wchar_t*>::value,
+				"Couldn't construct 'utf16_iterator<const wchar_t*>' from 'const wchar_t*, const wchar_t*'!");
+
+			static_assert(std::is_constructible<UtfN::utf16_iterator<wchar_t*>, wchar_t*, wchar_t*>::value,
+				"Couldn't construct 'utf16_iterator<wchar_t*>' from 'wchar_t*, wchar_t*'!");
+			static_assert(!std::is_constructible<UtfN::utf16_iterator<wchar_t*>, const wchar_t*, const wchar_t*>::value, /* ASSERT SHOULD FAIL! (NEGATED) */
+				"Couldn't construct 'utf16_iterator<wchar_t*>' from 'const wchar_t*, const wchar_t*'!");
+
+			static_assert(std::is_constructible<UtfN::utf16_iterator<std::wstring::iterator>, std::wstring&>::value,
+				"Couldn't construct 'utf16_iterator<std::wstring::iterator>' from 'std::wstring&'!");
+			static_assert(std::is_constructible<UtfN::utf16_iterator<std::wstring::const_iterator>, std::wstring&>::value,
+				"Couldn't construct 'utf16_iterator<std::wstring::const_iterator>' from 'std::wstring&'!");
+#endif // UTFN_TESTS && UTFN_COMPILATION_TESTS
+		}
+
+		void TestUtf16IteratorCompilation()
+		{
+#if defined(UTFN_TESTS) && defined(UTFN_COMPILATION_TESTS)
+			static_assert(std::is_constructible<UtfN::utf8_iterator<const char*>, char*, char*>::value,
+				"Couldn't construct 'utf8_iterator<const char*>' from 'char*, char*'!");
+			static_assert(std::is_constructible<UtfN::utf8_iterator<const char*>, const char*, const char*>::value,
+				"Couldn't construct 'utf8_iterator<const char*>' from 'const char*, const char*'!");
+
+			static_assert(std::is_constructible<UtfN::utf8_iterator<char*>, char*, char*>::value,
+				"Couldn't construct 'utf8_iterator<char*>' from 'char*, char*'!");
+			static_assert(!std::is_constructible<UtfN::utf8_iterator<char*>, const char*, const char*>::value, /* ASSERT SHOULD FAIL! (NEGATED) */
+				"Couldn't construct 'utf8_iterator<char*>' from 'const char*, const char*'!");
+
+			static_assert(std::is_constructible<UtfN::utf8_iterator<std::string::iterator>, std::string&>::value,
+				"Couldn't construct 'utf8_iterator<std::string::iterator>' from 'std::string&'!");
+			static_assert(std::is_constructible<UtfN::utf8_iterator<std::string::const_iterator>, std::string&>::value,
+				"Couldn't construct 'utf8_iterator<std::string::const_iterator>' from 'std::string&'!");
+#endif // UTFN_TESTS && UTFN_COMPILATION_TESTS
+		}
+
+		void TestUtf32IteratorCompilation()
+		{
+#if defined(UTFN_TESTS) && defined(UTFN_COMPILATION_TESTS)
+			static_assert(std::is_constructible<UtfN::utf32_iterator<const utf_cp32_t*>, utf_cp32_t*, utf_cp32_t*>::value,
+				"Couldn't construct 'utf32_iterator<const utf_cp32_t*>' from 'utf_cp32_t*, utf_cp32_t*'!");
+			static_assert(std::is_constructible<UtfN::utf32_iterator<const utf_cp32_t*>, const utf_cp32_t*, const utf_cp32_t*>::value,
+				"Couldn't construct 'utf32_iterator<const utf_cp32_t*>' from 'const utf_cp32_t*, const utf_cp32_t*'!");
+
+			static_assert(std::is_constructible<UtfN::utf32_iterator<utf_cp32_t*>, utf_cp32_t*, utf_cp32_t*>::value,
+				"Couldn't construct 'utf32_iterator<utf_cp32_t*>' from 'utf_cp32_t*, utf_cp32_t*'!");
+			static_assert(!std::is_constructible<UtfN::utf32_iterator<utf_cp32_t*>, const utf_cp32_t*, const utf_cp32_t*>::value, /* ASSERT SHOULD FAIL! (NEGATED) */
+				"Couldn't construct 'utf32_iterator<utf_cp32_t*>' from 'const utf_cp32_t*, const utf_cp32_t*'!");
+#endif // UTFN_TESTS && UTFN_COMPILATION_TESTS
+		}
+	}
+} 
 
 // Restore all warnings suppressed for UTFN Tests
 #if (defined(_MSC_VER))
