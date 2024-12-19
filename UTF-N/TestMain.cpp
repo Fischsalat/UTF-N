@@ -139,5 +139,5 @@ int main()
 	std::wstring MyTestWStr1 = L"Hell_world .com";
 	std::cout << "WString to String conversion-result: " << UtfN::Utf16StringToUtf8String<std::string>(MyTestWStr1) << std::endl;
 
-	std::cout << "WString to String conversion-result: " << UtfN::Utf16StringToUtf8String<std::string>(MyTestWStr1) << std::endl;
+	std::cout << "const wchar_t* to String conversion-result: " << UtfN::Utf16StringToUtf8String<std::string>(L"Hell_world .com") << std::endl;
 }

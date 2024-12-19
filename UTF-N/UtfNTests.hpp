@@ -96,17 +96,6 @@ namespace UtfNTests
 
 	namespace Conversions
 	{
-		/*
-		utf16_pair Utf32ToUtf16Pair(utf_cp32_t);
-		utf_cp32_t Utf16PairToUtf32(utf16_pair);
-
-		utf8_bytes Utf32ToUtf8Bytes(utf_cp32_t);
-		utf_cp32_t Utf8BytesToUtf32(utf8_bytes);
-
-		utf8_bytes Utf16PairToUtf8Bytes(utf16_pair);
-		utf16_pair Utf8BytesToUtf16(utf8_bytes);
-		*/
-
 		constexpr void TestUtf32ToUtf16Pair()
 		{
 #if defined(UTFN_TESTS) && defined(UTFN_CONVERSION_TESTS)
@@ -240,6 +229,12 @@ namespace UtfNTests
 			static_assert(Utf8BytesToUtf32(utf8_bytes{ 0x80, 0x00, 0x00, 0x00 }) == 0x00000000, "Utf8BytesToUtf32 failed for invalid character (lone continuation byte).");
 			static_assert(Utf8BytesToUtf32(utf8_bytes{ 0xF8, 0x00, 0x00, 0x00 }) == 0x00000000, "Utf8BytesToUtf32 failed for invalid character (out of range).");
 #endif // UTFN_TESTS && UTFN_CONVERSION_TESTS
+		}
+
+
+		constexpr void TestUtf16StringToUtf8String()
+		{
+
 		}
 	}
 
