@@ -47,6 +47,13 @@
 #endif // __cpp_constexpr
 
 
+#ifdef __cpp_if_constexpr
+#define UTF_IF_CONSTEXPR constexpr
+#else
+#define UTF_IF_CONSTEXPR
+#endif // __cpp_if_constexpr
+
+
 #if (defined(__cpp_constexpr) && __cpp_constexpr >= 201304L)
 #define UTF_CONSTEXPR14 constexpr
 #else 
@@ -117,6 +124,22 @@ namespace UtfN
 				value_type GetWithClearedFlag(value_type Value, flag_type Flag) noexcept
 			{
 				return static_cast<value_type>(Value & static_cast<flag_type>(~Flag));
+			}
+
+			// Does not add/remove cv-qualifiers
+			template<typename target_type, typename current_type>
+			UTF_CONSTEXPR UTF_NODISCARD
+				auto ForceCastIfMissmatch(current_type&& Arg) -> std::enable_if_t<std::is_same<std::decay_t<target_type>, std::decay_t<current_type>>::value, current_type>
+			{
+				return static_cast<current_type>(Arg);
+			}
+
+			// Does not add/remove cv-qualifiers
+			template<typename target_type, typename current_type>
+			UTF_CONSTEXPR UTF_NODISCARD
+				auto ForceCastIfMissmatch(current_type&& Arg) -> std::enable_if_t<!std::is_same<std::decay_t<target_type>, std::decay_t<current_type>>::value, target_type>
+			{
+				return reinterpret_cast<target_type>(Arg);
 			}
 		}
 
@@ -425,10 +448,10 @@ namespace UtfN
 		UTF_CONSTEXPR UTF_NODISCARD utf_char16 GetAsUtf16() const noexcept;
 		UTF_CONSTEXPR UTF_NODISCARD utf_char32 GetAsUtf32() const noexcept;
 
-		UTF_CONSTEXPR UTF_NODISCARD utf_char8 Get() const;
+		UTF_CONSTEXPR UTF_NODISCARD utf8_bytes Get() const;
 
 		UTF_CONSTEXPR UTF_NODISCARD UtfEncodingType GetEncoding() const noexcept;
-		UTF_CONSTEXPR UTF_NODISCARD uint8_t GetByteSize() const noexcept;
+		UTF_CONSTEXPR UTF_NODISCARD uint8_t GetNumCodepoints() const noexcept;
 
 		UTF_CONSTEXPR UTF_NODISCARD static uint8_t GetCodepointSize() noexcept;
 	};
@@ -463,10 +486,10 @@ namespace UtfN
 		UTF_CONSTEXPR UTF_NODISCARD utf_char16 GetAsUtf16() const noexcept;
 		UTF_CONSTEXPR UTF_NODISCARD utf_char32 GetAsUtf32() const noexcept;
 
-		UTF_CONSTEXPR UTF_NODISCARD utf_char16 Get() const noexcept;
+		UTF_CONSTEXPR UTF_NODISCARD utf16_pair Get() const noexcept;
 
 		UTF_CONSTEXPR UTF_NODISCARD UtfEncodingType GetEncoding() const noexcept;
-		UTF_CONSTEXPR UTF_NODISCARD uint8_t GetByteSize() const noexcept;
+		UTF_CONSTEXPR UTF_NODISCARD uint8_t GetNumCodepoints() const noexcept;
 
 		UTF_CONSTEXPR UTF_NODISCARD static uint8_t GetCodepointSize() noexcept;
 	};
@@ -501,10 +524,10 @@ namespace UtfN
 		UTF_CONSTEXPR UTF_NODISCARD utf_char16 GetAsUtf16() const noexcept;
 		UTF_CONSTEXPR UTF_NODISCARD utf_char32 GetAsUtf32() const noexcept;
 
-		UTF_CONSTEXPR UTF_NODISCARD utf_char32 Get() const noexcept;
+		UTF_CONSTEXPR UTF_NODISCARD utf_cp32_t Get() const noexcept;
 
 		UTF_CONSTEXPR UTF_NODISCARD UtfEncodingType GetEncoding() const noexcept;
-		UTF_CONSTEXPR UTF_NODISCARD uint8_t GetByteSize() const noexcept;
+		UTF_CONSTEXPR UTF_NODISCARD uint8_t GetNumCodepoints() const noexcept;
 
 		UTF_CONSTEXPR UTF_NODISCARD static uint8_t GetCodepointSize() noexcept;
 	};
@@ -857,7 +880,8 @@ namespace UtfN
 	};
 
 	template<typename codepoint_type,
-		typename std::enable_if<sizeof(codepoint_type) == 0x1 && std::is_integral<codepoint_type>::value, int>::type = 0>
+		typename std::enable_if<sizeof(codepoint_type) == 0x1 && std::is_integral<codepoint_type>::value, int>::type = 0
+	>
 	UTF_CONSTEXPR UTF_NODISCARD
 		utf_char8 ParseUtf8CharFromStr(const codepoint_type* Str)
 	{
@@ -888,7 +912,8 @@ namespace UtfN
 	}
 
 	template<typename codepoint_type,
-		typename std::enable_if<sizeof(codepoint_type) == 0x2 && std::is_integral<codepoint_type>::value, int>::type = 0>
+		typename std::enable_if<sizeof(codepoint_type) == 0x2 && std::is_integral<codepoint_type>::value, int>::type = 0
+	>
 	UTF_CONSTEXPR UTF_NODISCARD
 		utf_char16 ParseUtf16CharFromStr(const codepoint_type* Str)
 	{
@@ -904,7 +929,8 @@ namespace UtfN
 	}
 
 	template<typename codepoint_type,
-		typename std::enable_if<sizeof(codepoint_type) == 0x4 && std::is_integral<codepoint_type>::value, int>::type = 0>
+		typename std::enable_if<sizeof(codepoint_type) == 0x4 && std::is_integral<codepoint_type>::value, int>::type = 0
+	>
 	UTF_CONSTEXPR UTF_NODISCARD
 		utf_char32 ParseUtf32CharFromStr(const codepoint_type* Str)
 	{
@@ -914,55 +940,288 @@ namespace UtfN
 		return static_cast<utf_cp32_t>(Str[0]);
 	}
 
-	template<typename Utf8CharString,
-		typename InnerIterator,
-		typename TargetCharType = typename std::decay<decltype(*std::begin(std::declval<Utf8CharString>()))>::type
+
+	/*
+	 * Conversions from UTF-16 to UTF-8
+	 */
+	template<typename utf8_char_string,
+		typename inner_iterator,
+		typename target_char_type = typename std::decay<decltype(*std::begin(std::declval<utf8_char_string>()))>::type
 	>
 	UTF_CONSTEXPR20 UTF_NODISCARD
-		Utf8CharString Utf16StringToUtf8String(utf16_iterator<InnerIterator> StringIteratorToConvert)
+		utf8_char_string Utf16StringToUtf8String(utf16_iterator<inner_iterator> StringIteratorToConvert)
 	{
-		Utf8CharString RetString;
+		utf8_char_string RetString;
 
-		for (utf_char16 Char : StringIteratorToConvert)
+		for (const utf_char16 Char : StringIteratorToConvert)
 		{
 			const auto NewChar = Utf16PairToUtf8Bytes(Char);
 
-			for (int i = 0; i < NewChar.GetByteSize(); i++)
-				RetString += static_cast<TargetCharType>(NewChar[static_cast<uint8_t>(i)]);
+			for (int i = 0; i < NewChar.GetNumCodepoints(); i++)
+				RetString += static_cast<target_char_type>(NewChar[static_cast<uint8_t>(i)]);
 		}
 
 		return RetString;
 	}
 
-	template<typename Utf8CharString, typename Utf16CharString,
-		typename IteratorType = decltype(std::begin(std::declval<Utf16CharString>())),
-		typename = utf16_iterator<IteratorType>
+	template<typename utf8_char_string, typename utf16_char_string,
+		typename inner_iterator = decltype(std::begin(std::declval<const utf16_char_string>())),
+		typename = utf16_iterator<inner_iterator>
 	>
 	UTF_CONSTEXPR20 UTF_NODISCARD
-		Utf8CharString Utf16StringToUtf8String(const Utf16CharString& StringToConvert)
+		utf8_char_string Utf16StringToUtf8String(const utf16_char_string& StringToConvert)
 	{
-		return Utf16StringToUtf8String<Utf8CharString>(utf16_iterator<IteratorType>(StringToConvert));
+		return Utf16StringToUtf8String<utf8_char_string>(utf16_iterator<inner_iterator>(StringToConvert));
 	}
 
-	template<typename Utf8CharString, typename Utf16CharType, size_t CStrLenght,
-		typename = utf16_iterator<Utf16CharType*>
+	template<typename utf8_char_string, typename utf16_char_type, size_t CStrLenght,
+		typename = utf16_iterator<utf16_char_type*>
 	>
 	UTF_CONSTEXPR20 UTF_NODISCARD
-		Utf8CharString Utf16StringToUtf8String(Utf16CharType(&StringToConvert)[CStrLenght])
+		utf8_char_string Utf16StringToUtf8String(utf16_char_type(&StringToConvert)[CStrLenght])
 	{
-		return Utf16StringToUtf8String<Utf8CharString>(utf16_iterator<Utf16CharType*>(std::begin(StringToConvert), std::end(StringToConvert)));
+		return Utf16StringToUtf8String<utf8_char_string>(utf16_iterator<utf16_char_type*>(std::begin(StringToConvert), std::end(StringToConvert)));
 	}
 
+
+	/*
+	 * Conversions from UTF-32 to UTF-8
+	 */
+	template<typename utf8_char_string,
+		typename inner_iterator,
+		typename target_char_type = typename std::decay<decltype(*std::begin(std::declval<utf8_char_string>()))>::type
+	>
 	UTF_CONSTEXPR20 UTF_NODISCARD
-		std::string WStringToString(const std::wstring& WideString)
+		utf8_char_string Utf32StringToUtf8String(utf32_iterator<inner_iterator> StringIteratorToConvert)
 	{
-		(void)WideString;
+		utf8_char_string RetString;
 
-		if (UtfImpl::IsWCharUtf32)
-			return "";
+		for (const utf_char32 Char : StringIteratorToConvert)
+		{
+			const auto NewChar = Utf32ToUtf8Bytes(Char);
 
-		return "";
+			for (int i = 0; i < NewChar.GetNumCodepoints(); i++)
+				RetString += static_cast<target_char_type>(NewChar[static_cast<uint8_t>(i)]);
+		}
+
+		return RetString;
 	}
+
+	template<typename utf8_char_string, typename utf32_char_string,
+		typename inner_iterator = decltype(std::begin(std::declval<utf32_char_string>())),
+		typename = utf32_iterator<inner_iterator>
+	>
+	UTF_CONSTEXPR20 UTF_NODISCARD
+		utf8_char_string Utf32StringToUtf8String(const utf32_char_string& StringToConvert)
+	{
+		return Utf32StringToUtf8String<utf8_char_string>(utf32_iterator<inner_iterator>(StringToConvert));
+	}
+
+	template<typename utf8_char_string, typename utf32_char_type, size_t cstr_lenght,
+		typename = utf32_iterator<utf32_char_type*>
+	>
+	UTF_CONSTEXPR20 UTF_NODISCARD
+		utf8_char_string Utf32StringToUtf8String(utf32_char_type(&StringToConvert)[cstr_lenght])
+	{
+		return Utf32StringToUtf8String<utf8_char_string>(utf32_iterator<utf32_char_type*>(std::begin(StringToConvert), std::end(StringToConvert)));
+	}
+
+
+	/*
+	 * Conversions from UTF-8 to UTF-16
+	 */
+	template<typename utf16_char_string,
+		typename inner_iterator,
+		typename target_char_type = typename std::decay<decltype(*std::begin(std::declval<utf16_char_string>()))>::type
+	>
+		UTF_CONSTEXPR20 UTF_NODISCARD
+		utf16_char_string Utf8StringToUtf16String(utf8_iterator<inner_iterator> StringIteratorToConvert)
+	{
+		utf16_char_string RetString;
+
+		for (const utf_char8 Char : StringIteratorToConvert)
+		{
+			const auto NewChar = Utf8BytesToUtf16(Char);
+
+			if (NewChar.GetNumCodepoints() > 1)
+				RetString += NewChar.Get().Upper;
+
+			RetString += NewChar.Get().Lower;
+		}
+
+		return RetString;
+	}
+
+	template<typename utf16_char_string, typename utf8_char_string,
+		typename inner_iterator = decltype(std::begin(std::declval<utf8_char_string>())),
+		typename = utf8_iterator<inner_iterator>
+	>
+		UTF_CONSTEXPR20 UTF_NODISCARD
+		utf16_char_string Utf8StringToUtf16String(const utf8_char_string& StringToConvert)
+	{
+		return Utf32StringToUtf16String<utf16_char_string>(utf8_iterator<inner_iterator>(StringToConvert));
+	}
+
+	template<typename utf16_char_string, typename utf8_char_type, size_t cstr_lenght,
+		typename = utf8_iterator<utf8_char_type*>
+	>
+		UTF_CONSTEXPR20 UTF_NODISCARD
+		utf16_char_string Utf8StringToUtf16String(utf8_char_type(&StringToConvert)[cstr_lenght])
+	{
+		return Utf32StringToUtf16String<utf16_char_string>(utf8_iterator<utf8_char_type*>(std::begin(StringToConvert), std::end(StringToConvert)));
+	}
+
+
+	/*
+	 * Conversions from UTF-32 to UTF-16
+	 */
+	template<typename utf16_char_string,
+		typename inner_iterator,
+		typename target_char_type = typename std::decay<decltype(*std::begin(std::declval<utf16_char_string>()))>::type
+	>
+	UTF_CONSTEXPR20 UTF_NODISCARD
+		utf16_char_string Utf32StringToUtf16String(utf32_iterator<inner_iterator> StringIteratorToConvert)
+	{
+		utf16_char_string RetString;
+
+		for (const utf_char32 Char : StringIteratorToConvert)
+		{
+			const auto NewChar = Utf32ToUtf16Pair(Char);
+
+			if (NewChar.GetNumCodepoints() > 1)
+				RetString += NewChar.Get().Upper;
+
+			RetString += NewChar.Get().Lower;
+		}
+
+		return RetString;
+	}
+
+	template<typename utf16_char_string, typename utf32_char_string,
+		typename inner_iterator = decltype(std::begin(std::declval<utf32_char_string>())),
+		typename = utf32_iterator<inner_iterator>
+	>
+	UTF_CONSTEXPR20 UTF_NODISCARD
+		utf16_char_string Utf32StringToUtf16String(const utf32_char_string& StringToConvert)
+	{
+		return Utf32StringToUtf16String<utf16_char_string>(utf32_iterator<inner_iterator>(StringToConvert));
+	}
+
+	template<typename utf16_char_string, typename utf32_char_type, size_t cstr_lenght,
+		typename = utf32_iterator<utf32_char_type*>
+	>
+	UTF_CONSTEXPR20 UTF_NODISCARD
+		utf16_char_string Utf32StringToUtf16String(utf32_char_type(&StringToConvert)[cstr_lenght])
+	{
+		return Utf32StringToUtf16String<utf16_char_string>(utf32_iterator<utf32_char_type*>(std::begin(StringToConvert), std::end(StringToConvert)));
+	}
+
+
+	/*
+	 * Conversions from UTF-8 to UTF-32
+	 */
+	template<typename utf32_char_string,
+		typename inner_iterator,
+		typename target_char_type = typename std::decay<decltype(*std::begin(std::declval<utf32_char_string>()))>::type
+	>
+	UTF_CONSTEXPR20 UTF_NODISCARD
+		utf32_char_string Utf8StringToUtf32String(utf8_iterator<inner_iterator> StringIteratorToConvert)
+	{
+		utf32_char_string RetString;
+
+		for (const utf_char8 Char : StringIteratorToConvert)
+		{
+			RetString += Utf8BytesToUtf32(Char);
+		}
+
+		return RetString;
+	}
+
+	template<typename utf32_char_string, typename utf8_char_string,
+		typename inner_iterator = decltype(std::begin(std::declval<utf8_char_string>())),
+		typename = utf8_iterator<inner_iterator>
+	>
+	UTF_CONSTEXPR20 UTF_NODISCARD
+		utf32_char_string Utf8StringToUtf32String(const utf8_char_string& StringToConvert)
+	{
+		return Utf8StringToUtf32String<utf32_char_string>(utf8_iterator<inner_iterator>(StringToConvert));
+	}
+
+	template<typename utf32_char_string, typename utf8_char_type, size_t cstr_lenght,
+		typename = utf8_iterator<utf8_char_type*>
+	>
+	UTF_CONSTEXPR20 UTF_NODISCARD
+		utf32_char_string Utf8StringToUtf32String(utf8_char_type(&StringToConvert)[cstr_lenght])
+	{
+		return Utf8StringToUtf32String<utf32_char_string>(utf8_iterator<utf8_char_type*>(std::begin(StringToConvert), std::end(StringToConvert)));
+	}
+
+
+	/*
+	 * Conversions from UTF-16 to UTF-32
+	 */
+	template<typename utf32_char_string,
+		typename inner_iterator,
+		typename target_char_type = typename std::decay<decltype(*std::begin(std::declval<utf32_char_string>()))>::type
+	>
+	UTF_CONSTEXPR20 UTF_NODISCARD
+		utf32_char_string Utf16StringToUtf32String(utf16_iterator<inner_iterator> StringIteratorToConvert)
+	{
+		utf32_char_string RetString;
+
+		for (const utf_char16 Char : StringIteratorToConvert)
+		{
+			RetString += Utf16PairToUtf32(Char);
+		}
+
+		return RetString;
+	}
+
+	template<typename utf32_char_string, typename utf16_char_string,
+		typename inner_iterator = decltype(std::begin(std::declval<const utf16_char_string>())),
+		typename = utf16_iterator<inner_iterator>
+	>
+	UTF_CONSTEXPR20 UTF_NODISCARD
+		utf32_char_string Utf16StringToUtf32String(const utf16_char_string& StringToConvert)
+	{
+		return Utf16StringToUtf32String<utf32_char_string>(utf16_iterator<inner_iterator>(StringToConvert));
+	}
+
+	template<typename utf32_char_string, typename utf16_char_type, size_t CStrLenght,
+		typename = utf16_iterator<utf16_char_type*>
+	>
+	UTF_CONSTEXPR20 UTF_NODISCARD
+		utf32_char_string Utf16StringToUtf32String(utf16_char_type(&StringToConvert)[CStrLenght])
+	{
+		return Utf16StringToUtf32String<utf32_char_string>(utf16_iterator<utf16_char_type*>(std::begin(StringToConvert), std::end(StringToConvert)));
+	}
+
+
+	template<typename wstring_type = std::wstring,
+		typename = decltype(std::begin(std::declval<wstring_type>())), // has 'begin()'
+		typename = decltype(std::end(std::declval<wstring_type>()))    // has 'end()'
+	>
+	UTF_CONSTEXPR20 UTF_NODISCARD
+		std::string WStringToString(const wstring_type& WideString)
+	{
+		using char_type = typename std::decay<decltype(*std::begin(std::declval<wstring_type>()))>::type;
+
+		// Workaround to missing 'if constexpr (...)' in Cpp14. Satisfies the requirements of conversion-functions. Safe because the incorrect function is never going to be invoked.
+		struct dummy_2byte_str { uint16_t* begin() const { return nullptr; };   uint16_t* end() const { return nullptr; }; };
+		struct dummy_4byte_str { uint32_t* begin() const { return nullptr; };   uint32_t* end() const { return nullptr; }; };
+
+		if UTF_IF_CONSTEXPR (sizeof(char_type) == 0x2) // UTF-16
+		{
+			using type_to_use = typename std::conditional<sizeof(char_type) == 2, wstring_type, dummy_2byte_str>::type;
+			return Utf16StringToUtf8String<std::string, type_to_use>(UtfImpl::Utils::ForceCastIfMissmatch<const type_to_use&, const wstring_type&>(WideString));
+		}
+		else // UTF-32
+		{
+			using type_to_use = typename std::conditional<sizeof(char_type) == 4, wstring_type, dummy_4byte_str>::type;
+			return Utf32StringToUtf8String<std::string, type_to_use>(UtfImpl::Utils::ForceCastIfMissmatch<const type_to_use&, const wstring_type&>(WideString));
+		}
+	}
+
 
 	template<typename byte_iterator_type>
 	UTF_CONSTEXPR byte_iterator_type ReplaceUtf8(byte_iterator_type Begin, byte_iterator_type End, utf_cp8_t CharToReplace, utf_cp8_t ReplacementChar)
@@ -977,15 +1236,15 @@ namespace UtfN
 
 		if (ToReplaceSize == ReplacementSize) // Trivial replacement
 		{
-
+			// TODO
 		}
 		else if (ToReplaceSize < ReplacementSize) // 
 		{
-
+			// TODO
 		}
 		else /* if (ToReplaceSize > ReplacementSize) */ // Replace and move following bytes back
 		{
-
+			// TODO
 		}
 	}
 
@@ -1062,9 +1321,9 @@ namespace UtfN
 	}
 
 	UTF_CONSTEXPR UTF_NODISCARD
-		utf_char8 utf_char<UtfEncodingType::Utf8>::Get() const
+		utf8_bytes utf_char<UtfEncodingType::Utf8>::Get() const
 	{
-		return *this;
+		return Char;
 	}
 	
 	UTF_CONSTEXPR UTF_NODISCARD
@@ -1074,7 +1333,7 @@ namespace UtfN
 	}
 
 	UTF_CONSTEXPR UTF_NODISCARD
-		uint8_t utf_char<UtfEncodingType::Utf8>::GetByteSize() const noexcept
+		uint8_t utf_char<UtfEncodingType::Utf8>::GetNumCodepoints() const noexcept
 	{
 		return GetUtf8CharLenght(Char.Codepoints[0]);
 	}
@@ -1138,7 +1397,7 @@ namespace UtfN
 	}
 
 	UTF_CONSTEXPR UTF_NODISCARD 
-		utf_char16 utf_char<UtfEncodingType::Utf16>::Get() const noexcept
+		utf16_pair utf_char<UtfEncodingType::Utf16>::Get() const noexcept
 	{
 		return Char;
 	}
@@ -1150,7 +1409,7 @@ namespace UtfN
 	}
 
 	UTF_CONSTEXPR UTF_NODISCARD 
-		uint8_t utf_char<UtfEncodingType::Utf16>::GetByteSize() const noexcept
+		uint8_t utf_char<UtfEncodingType::Utf16>::GetNumCodepoints() const noexcept
 	{
 		return GetUtf16CharLenght(Char.Upper);
 	}
@@ -1212,7 +1471,7 @@ namespace UtfN
 	}
 
 	UTF_CONSTEXPR UTF_NODISCARD
-		utf_char32 utf_char<UtfEncodingType::Utf32>::Get() const noexcept
+		utf_cp32_t utf_char<UtfEncodingType::Utf32>::Get() const noexcept
 	{
 		return Char;
 	}
@@ -1224,9 +1483,9 @@ namespace UtfN
 	}
 
 	UTF_CONSTEXPR UTF_NODISCARD
-		uint8_t utf_char<UtfEncodingType::Utf32>::GetByteSize() const noexcept
+		uint8_t utf_char<UtfEncodingType::Utf32>::GetNumCodepoints() const noexcept
 	{
-		return 0x4;
+		return 0x1;
 	}
 
 	UTF_CONSTEXPR UTF_NODISCARD

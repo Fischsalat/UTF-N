@@ -1,6 +1,34 @@
 ﻿#pragma once
 #include "UtfN.hpp"
 
+// Lower warning-level and turn off certain warnings for STL compilation
+#if (defined(_MSC_VER))
+#pragma warning (push, 2) // Push warnings and set warn-level to 2
+#pragma warning(disable : 4365) // signed/unsigned mismatch
+#pragma warning(disable : 4710) // 'FunctionName' was not inlined
+#pragma warning(disable : 4711) // 'FunctionName' selected for automatic inline expansion
+#elif (defined(__CLANG__) || defined(__GNUC__))
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#endif
+
+#include <string>
+#include <iostream>
+
+#ifdef _DEBUG
+#include <stdexcept>
+#endif // _DEBUG
+
+
+// Restore warnings-levels after STL includes
+#if (defined(_MSC_VER))
+#pragma warning (pop)
+#elif (defined(__CLANG__) || defined(__GNUC__))
+#pragma GCC diagnostic pop
+#endif // Warnings
+
+#pragma warning(disable : 5045) // Compiler will insert Spectre mitigation for memory load if /Qspectre switch specified
+
 #define UTFN_CONVERSION_TESTS
 #define UTFN_PARSING_TESTS
 #define UTFN_COMPILATION_TESTS
@@ -231,10 +259,79 @@ namespace UtfNTests
 #endif // UTFN_TESTS && UTFN_CONVERSION_TESTS
 		}
 
+		constexpr uint8_t utf8_bytes[] = {
+			0x41,                                          // A (1 byte)
+			0xE0, 0xA4,0xB9,                               // ह (3 bytes)
+			0xE4, 0xBD, 0xA0,                              // 你 (3 bytes)
+			0xF0, 0x90, 0x80, 0x80,                        // 𐀀 (4 bytes)
+			0xF0, 0x9F, 0x98, 0x80,                        // 😀 (4 bytes)
+			0xD0, 0x91,                                    // Б (2 bytes)
+			0xD8, 0xB9,                                    // ع (2 bytes)
+			0xD9, 0x85,                                    // म (3 bytes)
+			0xE8, 0xAA, 0x9E,                              // 語 (3 bytes)
+			0xF0, 0xA4, 0xAD, 0xA2,                        // 𤭢 (4 bytes)
+			0xF0, 0x9F, 0x8C, 0x9F,                        // 🌟 (4 bytes)
+			0xE2, 0x82, 0xAC,                              // € (3 bytes)
+			0xF0, 0x90, 0x8D, 0x88                         // 𐍈 (4 bytes)
+		};
 
-		constexpr void TestUtf16StringToUtf8String()
+		bool TestUtf16StringToUtf8String()
 		{
+			const std::string Utf8_WString_ConversionResult = UtfN::WStringToString<std::wstring>(L"Aह你𐀀😀Бعم語𤭢🌟€𐍈");
 
+			for (size_t i = 0; i < Utf8_WString_ConversionResult.size(); i++)
+			{
+				if (static_cast<uint8_t>(Utf8_WString_ConversionResult[i]) != utf8_bytes[i])
+				{
+					std::cout << "Char at " << i << "doesn't match!" << "\n";
+					std::cout << "Utf8_WString_Conversion failed!" << std::endl;
+					return false;
+				}
+			}
+
+			const std::string Utf8_CStyle_ConversionResult = UtfN::WStringToString<std::wstring>(L"Aह你𐀀😀Бعم語𤭢🌟€𐍈");
+			for (size_t i = 0; i < Utf8_CStyle_ConversionResult.size(); i++)
+			{
+				if (static_cast<uint8_t>(Utf8_CStyle_ConversionResult[i]) != utf8_bytes[i])
+				{
+					std::cout << "Char at " << i << "doesn't match!" << "\n";
+					std::cout << "Utf8_WString_Conversion failed!" << std::endl;
+					return false;
+				}
+			}
+
+			return true;
+		}
+
+		bool TestUtf32StringToUtf8String()
+		{
+			const std::string Utf8_WString_ConversionResult = UtfN::Utf32StringToUtf8String<std::string>(U"Aह你𐀀😀Бعم語𤭢🌟€𐍈");
+
+			for (size_t i = 0; i < Utf8_WString_ConversionResult.size(); i++)
+			{
+				if (static_cast<uint8_t>(Utf8_WString_ConversionResult[i]) != utf8_bytes[i])
+				{
+					std::cout << "Char at " << i << "doesn't match!" << "\n";
+					std::cout << "Utf8_WString_Conversion failed!" << std::endl;
+					return false;
+				}
+			}
+
+			return true;
+		}
+
+		constexpr bool TestConstexprWStringToString()
+		{
+			std::wstring WStr = L"Hello";
+			const std::string Str = UtfN::WStringToString(WStr);
+
+			for (size_t i = 0; i < Str.size(); i++)
+			{
+				if (static_cast<uint8_t>(Str[i]) != utf8_bytes[i])
+					return false;
+			}
+
+			return true;
 		}
 	}
 

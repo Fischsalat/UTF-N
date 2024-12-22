@@ -22,6 +22,8 @@
 #pragma GCC diagnostic pop
 #endif // Warnings
 
+#pragma warning(disable : 5045) // Compiler will insert Spectre mitigation for memory load if /Qspectre switch specified
+
 int Replace(char* Current, char* End, char* MaxCapacity)
 {
 	(void)Current;
@@ -138,6 +140,24 @@ int main()
 
 	std::wstring MyTestWStr1 = L"Hell_world .com";
 	std::cout << "WString to String conversion-result: " << UtfN::Utf16StringToUtf8String<std::string>(MyTestWStr1) << std::endl;
-
+	std::cout << "WString to String conversion-result: " << UtfN::WStringToString(MyTestWStr1) << std::endl;
+	
 	std::cout << "const wchar_t* to String conversion-result: " << UtfN::Utf16StringToUtf8String<std::string>(L"Hell_world .com") << std::endl;
+	std::cout << "const wchar_t* to String conversion-result: " << UtfN::WStringToString<std::wstring>(L"Hell_world .com") << std::endl;
+
+	std::cout << "const wchar_t* to String conversion-result: " << UtfN::Utf16StringToUtf8String<std::string>(L"Aह你𐀀😀Бعم語𤭢🌟€𐍈") << std::endl;
+	std::cout << "const wchar_t* to String conversion-result: " << UtfN::WStringToString<std::wstring>(L"Aह你𐀀😀Бعم語𤭢🌟€𐍈") << std::endl;
+
+
+	std::cout << "utf32* to String conversion-result: " << UtfN::Utf32StringToUtf8String<std::string>(U"Hell_world .com") << std::endl;
+	std::cout << "utf32* to String conversion-result: " << UtfN::Utf32StringToUtf8String<std::string>(U"Aह你𐀀😀Бعم語𤭢🌟€𐍈") << std::endl;
+	
+	if (UtfNTests::Conversions::TestUtf16StringToUtf8String())
+	{
+		std::cout << "\nPassed TestUtf16StringToUtf8String()!" << std::endl;
+	}
+	if (UtfNTests::Conversions::TestUtf32StringToUtf8String())
+	{
+		std::cout << "\nPassed TestUtf16StringToUtf8String()!" << std::endl;
+	}
 }
