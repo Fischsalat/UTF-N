@@ -151,6 +151,9 @@ int main()
 
 	std::cout << "utf32* to String conversion-result: " << UtfN::Utf32StringToUtf8String<std::string>(U"Hell_world .com") << std::endl;
 	std::cout << "utf32* to String conversion-result: " << UtfN::Utf32StringToUtf8String<std::string>(U"Aह你𐀀😀Бعم語𤭢🌟€𐍈") << std::endl;
+
+	const wchar_t* TestWideCStr = L"Aह你𐀀😀Бعم語𤭢🌟€𐍈";
+	std::cout << "const wchar_t* conversion-result: " << UtfN::Utf16StringToUtf8String<std::string>(TestWideCStr, sizeof(L"Aह你𐀀😀Бعم語𤭢🌟€𐍈")) << std::endl;
 	
 	if (UtfNTests::Conversions::TestUtf16StringToUtf8String())
 	{
@@ -160,4 +163,13 @@ int main()
 	{
 		std::cout << "\nPassed TestUtf16StringToUtf8String()!" << std::endl;
 	}
+
+	const std::string UE_Str_0 = UtfN::WStringToString<std::wstring>(L"Class");
+	const std::string UE_Str_1 = UtfN::WStringToString<std::wstring>(L"PrefabricatorRuntime");
+	const std::string UE_Str_2 = UtfN::WStringToString<std::wstring>(L"PrefabActor");
+
+	const std::string UE_Combined_Str = UE_Str_0 + " " + UE_Str_1 + "." + UE_Str_2;
+
+	std::cout << "Class PrefabricatorRuntime.PrefabActor: \"" << UtfN::WStringToString<std::wstring>(L"Class PrefabricatorRuntime.PrefabActor") << "\"\n" << std::endl;
+	std::cout << "Partial conversion:                     \"" << UE_Combined_Str << "\"\n" << std::endl;
 }

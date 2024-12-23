@@ -340,6 +340,12 @@ namespace UtfN
 					return CurrentIterator != Other.CurrentIterator;
 				}
 
+				UTF_CONSTEXPR inline
+					explicit operator bool() const
+				{
+					return this->CurrentIterator != this->EndIterator;
+				}
+
 			public:
 				UTF_CONSTEXPR inline 
 					child_iterator_type begin()
@@ -580,7 +586,7 @@ namespace UtfN
 
 		utf16_pair RetCharPair;
 
-		if (Character.Char > std::numeric_limits<utf_cp16_t>::max())
+		if (Character.Char > USHRT_MAX)
 		{
 			const utf_cp32_t PreparedCodepoint = Character.Char - Utf16::SurrogatePairOffset;
 
@@ -868,6 +874,14 @@ namespace UtfN
 	public:
 		utf32_iterator() = delete;
 
+	public:
+		template<typename char_type = utf_cp32_t>
+		auto Replace(const char_type NewChar) -> std::enable_if_t<std::is_assignable<iterator_deref_type, char_type>::value>
+		{
+			this->CurrentChar = NewChar;
+			*this->CurrentIterator = NewChar;
+		}
+
 	private:
 		void ReadChar()
 		{
@@ -980,7 +994,16 @@ namespace UtfN
 	UTF_CONSTEXPR20 UTF_NODISCARD
 		utf8_char_string Utf16StringToUtf8String(utf16_char_type(&StringToConvert)[CStrLenght])
 	{
-		return Utf16StringToUtf8String<utf8_char_string>(utf16_iterator<utf16_char_type*>(std::begin(StringToConvert), std::end(StringToConvert)));
+		return Utf16StringToUtf8String<utf8_char_string>(utf16_iterator<const utf16_char_type*>(std::begin(StringToConvert), std::end(StringToConvert)));
+	}
+
+	template<typename utf8_char_string, typename utf16_char_type,
+		typename = utf16_iterator<utf16_char_type*>
+	>
+	UTF_CONSTEXPR20 UTF_NODISCARD
+		utf8_char_string Utf16StringToUtf8String(const utf16_char_type* StringToConvert, int NonNullTermiantedLength)
+	{
+		return Utf16StringToUtf8String<utf8_char_string>(utf16_iterator<const utf16_char_type*>(StringToConvert, StringToConvert + NonNullTermiantedLength));
 	}
 
 
@@ -1023,7 +1046,16 @@ namespace UtfN
 	UTF_CONSTEXPR20 UTF_NODISCARD
 		utf8_char_string Utf32StringToUtf8String(utf32_char_type(&StringToConvert)[cstr_lenght])
 	{
-		return Utf32StringToUtf8String<utf8_char_string>(utf32_iterator<utf32_char_type*>(std::begin(StringToConvert), std::end(StringToConvert)));
+		return Utf32StringToUtf8String<utf8_char_string>(utf32_iterator<const utf32_char_type*>(std::begin(StringToConvert), std::end(StringToConvert)));
+	}
+
+	template<typename utf8_char_string, typename utf32_char_type,
+		typename = utf32_iterator<utf32_char_type*>
+	>
+	UTF_CONSTEXPR20 UTF_NODISCARD
+		utf8_char_string Utf32StringToUtf8String(const utf32_char_type* StringToConvert, int NonNullTermiantedLength)
+	{
+		return Utf32StringToUtf8String<utf8_char_string>(utf32_iterator<const utf32_char_type*>(StringToConvert, StringToConvert + NonNullTermiantedLength));
 	}
 
 
@@ -1034,7 +1066,7 @@ namespace UtfN
 		typename inner_iterator,
 		typename target_char_type = typename std::decay<decltype(*std::begin(std::declval<utf16_char_string>()))>::type
 	>
-		UTF_CONSTEXPR20 UTF_NODISCARD
+	UTF_CONSTEXPR20 UTF_NODISCARD
 		utf16_char_string Utf8StringToUtf16String(utf8_iterator<inner_iterator> StringIteratorToConvert)
 	{
 		utf16_char_string RetString;
@@ -1056,7 +1088,7 @@ namespace UtfN
 		typename inner_iterator = decltype(std::begin(std::declval<utf8_char_string>())),
 		typename = utf8_iterator<inner_iterator>
 	>
-		UTF_CONSTEXPR20 UTF_NODISCARD
+	UTF_CONSTEXPR20 UTF_NODISCARD
 		utf16_char_string Utf8StringToUtf16String(const utf8_char_string& StringToConvert)
 	{
 		return Utf32StringToUtf16String<utf16_char_string>(utf8_iterator<inner_iterator>(StringToConvert));
@@ -1065,10 +1097,19 @@ namespace UtfN
 	template<typename utf16_char_string, typename utf8_char_type, size_t cstr_lenght,
 		typename = utf8_iterator<utf8_char_type*>
 	>
-		UTF_CONSTEXPR20 UTF_NODISCARD
+	UTF_CONSTEXPR20 UTF_NODISCARD
 		utf16_char_string Utf8StringToUtf16String(utf8_char_type(&StringToConvert)[cstr_lenght])
 	{
-		return Utf32StringToUtf16String<utf16_char_string>(utf8_iterator<utf8_char_type*>(std::begin(StringToConvert), std::end(StringToConvert)));
+		return Utf32StringToUtf16String<utf16_char_string>(utf8_iterator<const utf8_char_type*>(std::begin(StringToConvert), std::end(StringToConvert)));
+	}
+
+	template<typename utf16_char_string, typename utf8_char_type,
+		typename = utf8_iterator<utf8_char_type*>
+	>
+	UTF_CONSTEXPR20 UTF_NODISCARD
+		utf16_char_string Utf8StringToUtf16String(const utf8_char_type* StringToConvert, int NonNullTermiantedLength)
+	{
+		return Utf32StringToUtf16String<utf16_char_string>(utf32_iterator<const utf8_char_type*>(StringToConvert, StringToConvert + NonNullTermiantedLength));
 	}
 
 
@@ -1113,7 +1154,16 @@ namespace UtfN
 	UTF_CONSTEXPR20 UTF_NODISCARD
 		utf16_char_string Utf32StringToUtf16String(utf32_char_type(&StringToConvert)[cstr_lenght])
 	{
-		return Utf32StringToUtf16String<utf16_char_string>(utf32_iterator<utf32_char_type*>(std::begin(StringToConvert), std::end(StringToConvert)));
+		return Utf32StringToUtf16String<utf16_char_string>(utf32_iterator<const utf32_char_type*>(std::begin(StringToConvert), std::end(StringToConvert)));
+	}
+
+	template<typename utf16_char_string, typename utf32_char_type,
+		typename = utf8_iterator<utf32_char_type*>
+	>
+	UTF_CONSTEXPR20 UTF_NODISCARD
+		utf16_char_string Utf32StringToUtf16String(const utf32_char_type* StringToConvert, int NonNullTermiantedLength)
+	{
+		return Utf32StringToUtf16String<utf16_char_string>(utf32_iterator<const utf32_char_type*>(StringToConvert, StringToConvert + NonNullTermiantedLength));
 	}
 
 
@@ -1153,7 +1203,16 @@ namespace UtfN
 	UTF_CONSTEXPR20 UTF_NODISCARD
 		utf32_char_string Utf8StringToUtf32String(utf8_char_type(&StringToConvert)[cstr_lenght])
 	{
-		return Utf8StringToUtf32String<utf32_char_string>(utf8_iterator<utf8_char_type*>(std::begin(StringToConvert), std::end(StringToConvert)));
+		return Utf8StringToUtf32String<utf32_char_string>(utf8_iterator<const utf8_char_type*>(std::begin(StringToConvert), std::end(StringToConvert)));
+	}
+
+	template<typename utf32_char_string, typename utf8_char_type, size_t cstr_lenght,
+		typename = utf8_iterator<utf8_char_type*>
+	>
+	UTF_CONSTEXPR20 UTF_NODISCARD
+		utf32_char_string Utf8StringToUtf32String(const utf8_char_type* StringToConvert, int NonNullTermiantedLength)
+	{
+		return Utf8StringToUtf32String<utf32_char_string>(utf8_iterator<const utf8_char_type*>(StringToConvert, StringToConvert + NonNullTermiantedLength));
 	}
 
 
@@ -1187,13 +1246,22 @@ namespace UtfN
 		return Utf16StringToUtf32String<utf32_char_string>(utf16_iterator<inner_iterator>(StringToConvert));
 	}
 
-	template<typename utf32_char_string, typename utf16_char_type, size_t CStrLenght,
+	template<typename utf32_char_string, typename utf16_char_type, size_t cstr_lenght,
 		typename = utf16_iterator<utf16_char_type*>
 	>
 	UTF_CONSTEXPR20 UTF_NODISCARD
-		utf32_char_string Utf16StringToUtf32String(utf16_char_type(&StringToConvert)[CStrLenght])
+		utf32_char_string Utf16StringToUtf32String(utf16_char_type(&StringToConvert)[cstr_lenght])
 	{
-		return Utf16StringToUtf32String<utf32_char_string>(utf16_iterator<utf16_char_type*>(std::begin(StringToConvert), std::end(StringToConvert)));
+		return Utf16StringToUtf32String<utf32_char_string>(utf16_iterator<const utf16_char_type*>(std::begin(StringToConvert), std::end(StringToConvert)));
+	}
+
+	template<typename utf32_char_string, typename utf16_char_type, size_t cstr_lenght,
+		typename = utf16_iterator<utf16_char_type*>
+	>
+		UTF_CONSTEXPR20 UTF_NODISCARD
+		utf32_char_string Utf16StringToUtf32String(const utf16_char_type* StringToConvert, int NonNullTermiantedLength)
+	{
+		return Utf16StringToUtf32String<utf32_char_string>(utf16_iterator<const utf16_char_type*>(StringToConvert, StringToConvert + NonNullTermiantedLength));
 	}
 
 
