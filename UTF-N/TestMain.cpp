@@ -170,6 +170,16 @@ int main()
 
 	const std::string UE_Combined_Str = UE_Str_0 + " " + UE_Str_1 + "." + UE_Str_2;
 
+	const std::wstring UE_Str_1_0 = UtfN::StringToWString<std::string>("Class");
+	const std::wstring UE_Str_1_1 = UtfN::StringToWString<std::string>("PrefabricatorRuntime");
+	const std::wstring UE_Str_1_2 = UtfN::StringToWString<std::string>("PrefabActor");
+
+	const std::wstring UE_Combined_Str_1 = UE_Str_1_0 + L" " + UE_Str_1_1 + L"." + UE_Str_1_2;
+
 	std::cout << "Class PrefabricatorRuntime.PrefabActor: \"" << UtfN::WStringToString<std::wstring>(L"Class PrefabricatorRuntime.PrefabActor") << "\"\n" << std::endl;
 	std::cout << "Partial conversion:                     \"" << UE_Combined_Str << "\"\n" << std::endl;
+
+	std::wstring Str989 = UtfN::StringToWString<std::string>("OnlineSubsystemUtils/Default_OnlineBeaconHostObject");
+
+	std::wcout << Str989 << std::endl;
 }
